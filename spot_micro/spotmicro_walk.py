@@ -5,7 +5,12 @@ On macOS: run with mjpython (e.g. mjpython spotmicro_walk.py).
 Uses the same env (timestep 0.02) as training so episodes last many steps.
 Playback: PLAYBACK_SPEED = 1 is real time; higher = faster (e.g. 25 = 25x, no slow-mo).
 """
+import os
+import sys
 import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import gymnasium as gym
 from stable_baselines3 import PPO
 

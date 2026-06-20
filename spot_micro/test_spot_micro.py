@@ -10,6 +10,11 @@ Validates:
   4. Whether the reward signal for leg movement is meaningful vs fall penalty
 """
 
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import numpy as np
 import mujoco
 from spotmicro_loader import load_spotmicro_xml
