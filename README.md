@@ -24,8 +24,8 @@ On macOS, use `mjpython` instead of `python` for any script that opens the viewe
 ### Optimus — full biped
 
 ```bash
-mjpython run_sim.py          # macOS
-python   run_sim.py          # Linux
+mjpython optimus/run_sim.py          # macOS
+python   optimus/run_sim.py          # Linux
 ```
 
 Loads `optimus/mjcf/optimus.mujoco.xml` and opens the MuJoCo interactive viewer.
@@ -35,17 +35,17 @@ Loads `optimus/mjcf/optimus.mujoco.xml` and opens the MuJoCo interactive viewer.
 The half-leg model uses STEP meshes that must be converted to STL before first run:
 
 ```bash
-pip install -r requirements-step2stl.txt   # installs cadquery
-python step_to_stl.py                       # converts optimus/urdf/half-leg/meshes/*.step → *.stl
+pip install -r optimus/requirements-step2stl.txt   # installs cadquery
+python optimus/step_to_stl.py                       # converts optimus/urdf/half-leg/meshes/*.step → *.stl
 
-mjpython run_sim_half_leg.py
+mjpython optimus/run_sim_half_leg.py
 ```
 
 ### SpotMicro — viewer
 
 ```bash
-mjpython run_sim_spotmicro.py   # macOS
-python   run_sim_spotmicro.py   # Linux
+mjpython spot_micro/run_sim_spotmicro.py   # macOS
+python   spot_micro/run_sim_spotmicro.py   # Linux
 ```
 
 Loads `spot_micro/mjcf/spotmicro.xml` with STL meshes from `spot_micro/urdf/spotmicro_description/meshes/stl/`.
@@ -54,15 +54,15 @@ Loads `spot_micro/mjcf/spotmicro.xml` with STL meshes from `spot_micro/urdf/spot
 
 ```bash
 # Train — PPO for 1M steps
-python train_spotmicro.py --algo ppo --total_timesteps 1000000 --save_path ./logs/spotmicro_ppo
+python spot_micro/train_spotmicro.py --algo ppo --total_timesteps 1000000 --save_path ./logs/spotmicro_ppo
 
 # Train — SAC
-python train_spotmicro.py --algo sac --total_timesteps 1000000 --save_path ./logs/spotmicro_sac
+python spot_micro/train_spotmicro.py --algo sac --total_timesteps 1000000 --save_path ./logs/spotmicro_sac
 ```
 
-The Gym environment is in `spotmicro_env.py`. Reward: forward velocity with penalties for tilt, height error, and action magnitude. Episodes end on fall or `max_episode_steps`.
+The Gym environment is in `spot_micro/spotmicro_env.py`. Reward: forward velocity with penalties for tilt, height error, and action magnitude. Episodes end on fall or `max_episode_steps`.
 
-A notebook that trains and then runs the policy in the viewer is available at `spotmicro_train_and_run.ipynb`.
+A notebook that trains and then runs the policy in the viewer is available at `spot_micro/spotmicro_train_and_run.ipynb`.
 
 ---
 
@@ -77,24 +77,30 @@ NexusSimulation/
 │   │   └── half-leg/
 │   │       └── robot.mujoco.xml      # Half-leg prototype MJCF
 │   ├── meshes/                       # STL meshes for Optimus body parts
-│   └── urdf/
-│       ├── full/                     # URDF + meshes for full Optimus model
-│       └── half-leg/                 # URDF + STEP meshes for half-leg prototype
+│   ├── urdf/
+│   │   ├── full/                     # URDF + meshes for full Optimus model
+│   │   └── half-leg/                 # URDF + STEP meshes for half-leg prototype
+│   ├── run_sim.py                    # Optimus full-body viewer
+│   ├── run_sim_half_leg.py           # Optimus half-leg viewer
+│   ├── step_to_stl.py                # STEP → STL converter (half-leg meshes)
+│   └── requirements-step2stl.txt
 ├── spot_micro/
 │   ├── mjcf/
 │   │   └── spotmicro.xml            # SpotMicro MJCF
-│   └── urdf/
-│       └── spotmicro_description/   # URDF + STL meshes for SpotMicro
+│   ├── urdf/
+│   │   └── spotmicro_description/   # URDF + STL meshes for SpotMicro
+│   ├── run_sim_spotmicro.py         # SpotMicro viewer
+│   ├── spotmicro_loader.py          # Shared SpotMicro model loader
+│   ├── spotmicro_env.py             # Gymnasium environment for SpotMicro RL
+│   ├── spotmicro_traj_env.py        # Trajectory-following variant
+│   ├── spotmicro_walk.py            # Run trained policy in viewer
+│   ├── train_spotmicro.py           # PPO / SAC training script
+│   ├── train_spotmicro_traj.py      # Trajectory-imitation training
+│   ├── eval_spotmicro.py            # Policy evaluation / benchmarking
+│   ├── test_spot_micro.py           # Diagnostic / sanity checks
+│   └── spotmicro_train_and_run.ipynb
 ├── kinematics/                      # SpotMicro kinematics demos and firmware prototypes
 ├── logs/                            # Trained model checkpoints
-├── run_sim.py                       # Optimus full-body viewer
-├── run_sim_half_leg.py              # Optimus half-leg viewer
-├── run_sim_spotmicro.py             # SpotMicro viewer
-├── spotmicro_env.py                 # Gymnasium environment for SpotMicro RL
-├── spotmicro_traj_env.py            # Trajectory-following variant
-├── train_spotmicro.py               # PPO / SAC training script
-├── spotmicro_loader.py              # Shared SpotMicro model loader
-├── step_to_stl.py                   # STEP → STL converter (half-leg meshes)
 └── requirements.txt
 ```
 
