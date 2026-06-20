@@ -68,8 +68,8 @@ def main() -> None:
     ap.add_argument(
         "path",
         nargs="?",
-        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "URDF", "half-leg", "meshes"),
-        help="STEP file or directory containing .step/.stp files (default: mujuco/URDF/half-leg/meshes)",
+        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "optimus", "urdf", "half-leg", "meshes"),
+        help="STEP file or directory containing .step/.stp files (default: simulation/optimus/urdf/half-leg/meshes)",
     )
     ap.add_argument(
         "--out",

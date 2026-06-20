@@ -9,8 +9,8 @@ import re
 
 # Paths relative to this module (mujuco/)
 MUJUCO_DIR = os.path.dirname(os.path.abspath(__file__))
-MJCF_PATH = os.path.join(MUJUCO_DIR, "Mujuco XML", "SpotMicro", "spotmicro.xml")
-MESHES_DIR = os.path.join(MUJUCO_DIR, "URDF", "spotmicro_description", "meshes", "stl")
+MJCF_PATH = os.path.join(MUJUCO_DIR, "spot_micro", "mjcf", "spotmicro.xml")
+MESHES_DIR = os.path.join(MUJUCO_DIR, "spot_micro", "urdf", "spotmicro_description", "meshes", "stl")
 
 
 def load_spotmicro_xml() -> str:

@@ -28,7 +28,7 @@ mjpython run_sim.py          # macOS
 python   run_sim.py          # Linux
 ```
 
-Loads `Optimus Full/optimus.mujoco.xml` and opens the MuJoCo interactive viewer.
+Loads `optimus/mjcf/optimus.mujoco.xml` and opens the MuJoCo interactive viewer.
 
 ### Optimus — half-leg prototype
 
@@ -36,7 +36,7 @@ The half-leg model uses STEP meshes that must be converted to STL before first r
 
 ```bash
 pip install -r requirements-step2stl.txt   # installs cadquery
-python step_to_stl.py                       # converts URDF/half-leg/meshes/*.step → *.stl
+python step_to_stl.py                       # converts optimus/urdf/half-leg/meshes/*.step → *.stl
 
 mjpython run_sim_half_leg.py
 ```
@@ -48,7 +48,7 @@ mjpython run_sim_spotmicro.py   # macOS
 python   run_sim_spotmicro.py   # Linux
 ```
 
-Loads `Mujuco XML/SpotMicro/spotmicro.xml` with STL meshes from `URDF/spotmicro_description/meshes/stl/`.
+Loads `spot_micro/mjcf/spotmicro.xml` with STL meshes from `spot_micro/urdf/spotmicro_description/meshes/stl/`.
 
 ### SpotMicro — RL training (PPO / SAC)
 
@@ -70,23 +70,31 @@ A notebook that trains and then runs the policy in the viewer is available at `s
 
 ```
 NexusSimulation/
-├── Optimus Full/
-│   ├── optimus.mujoco.xml        # MJCF model — main Optimus sim
-│   └── meshes/                   # STL meshes for all body parts
-├── Mujuco XML/
-│   ├── SpotMicro/spotmicro.xml   # SpotMicro MJCF
-│   └── biped half-leg/           # Half-leg prototype MJCF
-├── URDF/
-│   ├── Optimus Full/             # URDF + meshes for Optimus
-│   ├── half-leg/                 # URDF + STEP meshes for half-leg
-│   └── spotmicro_description/    # URDF + STL meshes for SpotMicro
-├── kinematics/                   # SpotMicro kinematics demos and firmware prototypes
-├── run_sim.py                    # Optimus full-body viewer
-├── run_sim_half_leg.py           # Half-leg viewer
-├── run_sim_spotmicro.py          # SpotMicro viewer
-├── spotmicro_env.py              # Gymnasium environment for SpotMicro RL
-├── train_spotmicro.py            # PPO / SAC training script
-├── step_to_stl.py                # STEP → STL converter (half-leg meshes)
+├── optimus/
+│   ├── mjcf/
+│   │   ├── optimus.mujoco.xml        # MJCF model — main Optimus sim
+│   │   ├── optimus_mujoco_fixed.xml  # Fixed-base variant
+│   │   └── half-leg/
+│   │       └── robot.mujoco.xml      # Half-leg prototype MJCF
+│   ├── meshes/                       # STL meshes for Optimus body parts
+│   └── urdf/
+│       ├── full/                     # URDF + meshes for full Optimus model
+│       └── half-leg/                 # URDF + STEP meshes for half-leg prototype
+├── spot_micro/
+│   ├── mjcf/
+│   │   └── spotmicro.xml            # SpotMicro MJCF
+│   └── urdf/
+│       └── spotmicro_description/   # URDF + STL meshes for SpotMicro
+├── kinematics/                      # SpotMicro kinematics demos and firmware prototypes
+├── logs/                            # Trained model checkpoints
+├── run_sim.py                       # Optimus full-body viewer
+├── run_sim_half_leg.py              # Optimus half-leg viewer
+├── run_sim_spotmicro.py             # SpotMicro viewer
+├── spotmicro_env.py                 # Gymnasium environment for SpotMicro RL
+├── spotmicro_traj_env.py            # Trajectory-following variant
+├── train_spotmicro.py               # PPO / SAC training script
+├── spotmicro_loader.py              # Shared SpotMicro model loader
+├── step_to_stl.py                   # STEP → STL converter (half-leg meshes)
 └── requirements.txt
 ```
 
