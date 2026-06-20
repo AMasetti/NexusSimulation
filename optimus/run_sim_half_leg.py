@@ -18,8 +18,7 @@ import numpy as np
 import mujoco
 from mujoco import viewer
 
-# Paths relative to this script (mujuco/)
-MUJUCO_DIR = os.path.dirname(os.path.abspath(__file__))
+MUJUCO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MJCF_PATH = os.path.join(MUJUCO_DIR, "optimus", "mjcf", "half-leg", "robot.mujoco.xml")
 URDF_HALF_LEG_DIR = os.path.join(MUJUCO_DIR, "optimus", "urdf", "half-leg")
 CONSTRAINTS_PATH = os.path.join(URDF_HALF_LEG_DIR, "constraints.json")

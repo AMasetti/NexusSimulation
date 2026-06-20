@@ -18,20 +18,12 @@ import numpy as np
 import mujoco
 from mujoco import viewer
 
-# Paths: prefer myrobot.mujoco.xml, else URDF + meshes in mujuco/urdf/... or repo urdf/...
-MUJUCO_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(MUJUCO_DIR, ".."))
-_MODEL_CANDIDATES = (
-    os.path.join(MUJUCO_DIR, "urdf", "servo-forge-export-constrained"),
-    os.path.join(REPO_ROOT, "urdf", "servo-forge-export-constrained"),
-    os.path.join(MUJUCO_DIR, "servo-forge-export-constrained"),
-)
-_MJCF_FILENAME = "myrobot.mujoco.xml"
-_MJCF_CANDIDATES = tuple(os.path.join(d, _MJCF_FILENAME) for d in _MODEL_CANDIDATES)
-MJCF_PATH = next((p for p in _MJCF_CANDIDATES if os.path.isfile(p)), None)
-MODEL_DIR = next((d for d in _MODEL_CANDIDATES if os.path.isdir(d)), _MODEL_CANDIDATES[0])
-MODEL_PATH = os.path.join(MODEL_DIR, "robot.urdf")
-CONSTRAINTS_PATH = os.path.join(MODEL_DIR, "constraints.json")
+OPTIMUS_DIR = os.path.dirname(os.path.abspath(__file__))
+MUJUCO_DIR = os.path.dirname(OPTIMUS_DIR)
+MJCF_PATH = os.path.join(OPTIMUS_DIR, "mjcf", "optimus.mujoco.xml")
+MODEL_DIR = os.path.join(OPTIMUS_DIR, "urdf", "full")
+MODEL_PATH = os.path.join(MODEL_DIR, "Assembly.urdf")
+CONSTRAINTS_PATH = None
 
 
 def load_constraints(path: str) -> list[dict]:
@@ -233,9 +225,8 @@ def main() -> None:
     # Prefer existing myrobot.mujoco.xml (e.g. from repo urdf/servo-forge-export-constrained)
     if MJCF_PATH is not None and os.path.isfile(MJCF_PATH):
         model_dir = os.path.dirname(MJCF_PATH)
-        constraints_path = os.path.join(model_dir, "constraints.json")
-        if not os.path.isfile(constraints_path):
-            raise FileNotFoundError(f"Constraints not found: {constraints_path}")
+        _cpath = os.path.join(model_dir, "constraints.json")
+        constraints_path = _cpath if os.path.isfile(_cpath) else None
         print(f"Loading MJCF from {MJCF_PATH}")
         model = mujoco.MjModel.from_xml_path(MJCF_PATH)
         data = mujoco.MjData(model)
@@ -285,7 +276,7 @@ def main() -> None:
         data = mujoco.MjData(model)
         print("Model loaded (STL meshes). Close viewer window to exit.")
 
-    constraints = load_constraints(constraints_path)
+    constraints = load_constraints(constraints_path) if constraints_path else []
 
     # Map joint name -> qpos address
     joint_name_to_qposadr: dict[str, int] = {}

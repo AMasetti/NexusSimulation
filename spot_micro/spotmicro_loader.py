@@ -7,8 +7,7 @@ Used by run_sim_spotmicro.py and spotmicro_env.py.
 import os
 import re
 
-# Paths relative to this module (mujuco/)
-MUJUCO_DIR = os.path.dirname(os.path.abspath(__file__))
+MUJUCO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MJCF_PATH = os.path.join(MUJUCO_DIR, "spot_micro", "mjcf", "spotmicro.xml")
 MESHES_DIR = os.path.join(MUJUCO_DIR, "spot_micro", "urdf", "spotmicro_description", "meshes", "stl")
 
