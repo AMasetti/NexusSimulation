@@ -1,82 +1,112 @@
-# MuJoCo
+# NexusSimulation
 
-MuJoCo experiments and tests for the biped model.
+MuJoCo simulation environment for the Nexus Robotics project. Covers two robots:
 
-## Quick run
+- **Optimus** — 8-DOF biped (primary development target)
+- **SpotMicro** — quadruped (RL locomotion experiments)
+
+Part of the [NexusRobotics](https://github.com/AMasetti/NexusRobotics) monorepo.
+
+---
+
+## Setup
 
 ```bash
-cd mujuco
 pip install -r requirements.txt
-# On macOS the viewer requires mjpython:
-mjpython run_sim.py
-# On Linux you can use: python run_sim.py
 ```
 
-This loads `urdf/servo-forge-export-constrained/robot.urdf` (with `meshes/` and `constraints.json`), drives one hip joint with a slow sine wave, applies the constraint so the other hip mirrors it, and opens the MuJoCo viewer. Close the viewer window to exit.
+On macOS, use `mjpython` instead of `python` for any script that opens the viewer.
 
-## URDF to MuJoCo XML
+---
 
-To convert a URDF to MuJoCo’s native MJCF XML (e.g. for editing or to use with `run_sim.py`’s preferred `myrobot.mujoco.xml`):
+## Simulations
+
+### Optimus — full biped
 
 ```bash
-urdf2mjcf robot.urdf --output myrobot.mujoco.xml
+mjpython run_sim.py          # macOS
+python   run_sim.py          # Linux
 ```
 
-Run this from the directory that contains `robot.urdf` and your `meshes/` folder so relative mesh paths in the URDF resolve. The generated `myrobot.mujoco.xml` can be placed in `urdf/servo-forge-export-constrained/`; the sim will load it automatically when present.
+Loads `Optimus Full/optimus.mujoco.xml` and opens the MuJoCo interactive viewer.
 
-Install `urdf2mjcf` if needed: `pip install urdf2mjcf`.
+### Optimus — half-leg prototype
 
-## urdf/servo-forge-export-constrained
-
-- **robot.urdf** – URDF used by the sim; mesh paths are relative to this folder (`meshes/*.stl`).
-- **myrobot.mujoco.xml** – (Optional) MuJoCo XML; if present, the sim loads this instead of converting the URDF.
-- **constraints.json** – Constraint definitions (source/target joints, factor, offset).
-
-Constraints are applied in Python each step: target joint’s actuator control = factor × source joint qpos + offset, so you can simulate movement with the mirroring constraint.
-
-## Half-leg sim (robot.mujoco.xml + URDF/half-leg)
+The half-leg model uses STEP meshes that must be converted to STL before first run:
 
 ```bash
-# MuJoCo does not load STEP meshes. Convert STEP → STL first:
-pip install -r requirements-step2stl.txt   # or: pip install cadquery
-python step_to_stl.py                        # converts URDF/half-leg/meshes/*.step → *.stl
+pip install -r requirements-step2stl.txt   # installs cadquery
+python step_to_stl.py                       # converts URDF/half-leg/meshes/*.step → *.stl
 
 mjpython run_sim_half_leg.py
 ```
 
-`run_sim_half_leg.py` loads `Mujuco XML/half-leg/robot.mujoco.xml`, resolves meshes from `URDF/half-leg/meshes/`, and applies `URDF/half-leg/constraints.json`. The converter writes STL files next to each STEP (same base name).
-
-## SpotMicro sim (spotmicro.xml)
+### SpotMicro — viewer
 
 ```bash
-cd mujuco
-pip install -r requirements.txt
-mjpython run_sim_spotmicro.py   # macOS; on Linux: python run_sim_spotmicro.py
+mjpython run_sim_spotmicro.py   # macOS
+python   run_sim_spotmicro.py   # Linux
 ```
 
-Loads `Mujuco XML/SpotMicro/spotmicro.xml`, resolves mesh paths from `URDF/spotmicro_description/meshes/stl/`, and opens the MuJoCo viewer. Close the viewer window to exit.
+Loads `Mujuco XML/SpotMicro/spotmicro.xml` with STL meshes from `URDF/spotmicro_description/meshes/stl/`.
 
-## RL locomotion (SpotMicro)
-
-Train a policy to move the SpotMicro forward using reinforcement learning (PPO or SAC from Stable-Baselines3).
-
-**Install dependencies** (includes gymnasium, stable-baselines3, torch):
+### SpotMicro — RL training (PPO / SAC)
 
 ```bash
-cd mujuco
-pip install -r requirements.txt
-```
-
-**Train** (example: PPO for 1M steps, save to `./logs/spotmicro_ppo`):
-
-```bash
+# Train — PPO for 1M steps
 python train_spotmicro.py --algo ppo --total_timesteps 1000000 --save_path ./logs/spotmicro_ppo
+
+# Train — SAC
+python train_spotmicro.py --algo sac --total_timesteps 1000000 --save_path ./logs/spotmicro_sac
 ```
 
-Options: `--algo sac`, `--max_episode_steps 60000`, `--seed 0`. The Gymnasium env is in `spotmicro_env.py`; reward is forward velocity with small penalties for tilt, height error, and action magnitude. Episodes terminate when the base falls (low height or large tilt) or after `max_episode_steps`.
+The Gym environment is in `spotmicro_env.py`. Reward: forward velocity with penalties for tilt, height error, and action magnitude. Episodes end on fall or `max_episode_steps`.
 
-**Run a saved policy with the viewer**: load the model with Stable-Baselines3 (`PPO.load("path")`), create `SpotMicroEnv(render_mode="human")`, and step with `model.predict(obs)` in a loop until the episode ends. A **Jupyter notebook** that trains then runs the walking spot is in `spotmicro_train_and_run.ipynb`—run all cells to train and then watch the policy in the MuJoCo viewer.
+A notebook that trains and then runs the policy in the viewer is available at `spotmicro_train_and_run.ipynb`.
 
-## Viewer: only seeing boxes instead of STL meshes?
+---
 
-MuJoCo loads both **visual** (mesh) and **collision** (e.g. box) geometry from the URDF and puts them in different geom groups. If you only see simple shapes, press **1** or **2** in the viewer window to toggle geom groups—the STL visuals may be in another group. The script also injects `compiler meshdir` and `discardvisual="false"` so mesh paths resolve and visual geometry is kept (see [MuJoCo URDF issues](https://github.com/google-deepmind/mujoco/issues/1569)).
+## File structure
+
+```
+NexusSimulation/
+├── Optimus Full/
+│   ├── optimus.mujoco.xml        # MJCF model — main Optimus sim
+│   └── meshes/                   # STL meshes for all body parts
+├── Mujuco XML/
+│   ├── SpotMicro/spotmicro.xml   # SpotMicro MJCF
+│   └── biped half-leg/           # Half-leg prototype MJCF
+├── URDF/
+│   ├── Optimus Full/             # URDF + meshes for Optimus
+│   ├── half-leg/                 # URDF + STEP meshes for half-leg
+│   └── spotmicro_description/    # URDF + STL meshes for SpotMicro
+├── kinematics/                   # SpotMicro kinematics demos and firmware prototypes
+├── run_sim.py                    # Optimus full-body viewer
+├── run_sim_half_leg.py           # Half-leg viewer
+├── run_sim_spotmicro.py          # SpotMicro viewer
+├── spotmicro_env.py              # Gymnasium environment for SpotMicro RL
+├── train_spotmicro.py            # PPO / SAC training script
+├── step_to_stl.py                # STEP → STL converter (half-leg meshes)
+└── requirements.txt
+```
+
+---
+
+## MuJoCo viewer tips
+
+- Press **1** / **2** to toggle geom groups if you only see boxes instead of STL meshes (visual and collision geometry are in separate groups).
+- Press **Space** to pause/resume simulation.
+- Drag with right mouse button to rotate the camera.
+
+---
+
+## URDF → MJCF conversion
+
+To regenerate a `.mujoco.xml` from a URDF:
+
+```bash
+pip install urdf2mjcf
+urdf2mjcf robot.urdf --output robot.mujoco.xml
+```
+
+Run from the directory containing `robot.urdf` and its `meshes/` folder so relative paths resolve correctly.
