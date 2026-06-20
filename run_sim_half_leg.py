@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 MuJoCo simulation for the half-leg robot.
-- Loads robot.mujoco.xml from mujuco/Mujuco XML/half-leg/
-- Resolves mesh paths against mujuco/URDF/half-leg/meshes/
+- Loads robot.mujoco.xml from simulation/optimus/mjcf/half-leg/
+- Resolves mesh paths against simulation/optimus/urdf/half-leg/meshes/
 - MuJoCo does not support STEP meshes; the script expects .stl files (same base name as
-  .step, e.g. Knee_Left.stl). Convert STEP to STL and place in URDF/half-leg/meshes/.
-- Loads constraints from mujuco/URDF/half-leg/constraints.json
+  .step, e.g. Knee_Left.stl). Convert STEP to STL via step_to_stl.py.
+- Loads constraints from simulation/optimus/urdf/half-leg/constraints.json
 - Applies joint constraints each step; drives one joint with a sine wave. Close viewer to exit.
 """
 
@@ -20,8 +20,8 @@ from mujoco import viewer
 
 # Paths relative to this script (mujuco/)
 MUJUCO_DIR = os.path.dirname(os.path.abspath(__file__))
-MJCF_PATH = os.path.join(MUJUCO_DIR, "Mujuco XML", "half-leg", "robot.mujoco.xml")
-URDF_HALF_LEG_DIR = os.path.join(MUJUCO_DIR, "URDF", "half-leg")
+MJCF_PATH = os.path.join(MUJUCO_DIR, "optimus", "mjcf", "half-leg", "robot.mujoco.xml")
+URDF_HALF_LEG_DIR = os.path.join(MUJUCO_DIR, "optimus", "urdf", "half-leg")
 CONSTRAINTS_PATH = os.path.join(URDF_HALF_LEG_DIR, "constraints.json")
 MESHES_DIR = os.path.join(URDF_HALF_LEG_DIR, "meshes")
 
