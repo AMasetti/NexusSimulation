@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<robot name="robot">
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/base_link.step" scale="1 1 1"/></geometry>
+      <material name="grey"><color rgba="0.5 0.5 0.5 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.1 0.1 0.1"/></geometry>
+    </collision>
+  </link>
+  <link name="Hip_Left">
+    <visual>
+      <origin xyz="-0.018000000000000006 -0.08 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Hip_Left.step" scale="1 1 1"/></geometry>
+      <material name="grey"><color rgba="0.5 0.5 0.5 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.1 0.1 0.1"/></geometry>
+    </collision>
+  </link>
+  <link name="Sartorius_Left_Upper">
+    <visual>
+      <origin xyz="-0.034 -0.053 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Sartorius_Left_Upper.step" scale="1 1 1"/></geometry>
+      <material name="grey"><color rgba="0.5 0.5 0.5 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.1 0.1 0.1"/></geometry>
+    </collision>
+  </link>
+  <link name="Knee_Left">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Knee_Left.step" scale="1 1 1"/></geometry>
+      <material name="grey"><color rgba="0.5 0.5 0.5 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.1 0.1 0.1"/></geometry>
+    </collision>
+  </link>
+  <link name="Tendon_LT">
+    <visual>
+      <origin xyz="-0.033 0.024 0.044" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Tendon_LT.step" scale="1 1 1"/></geometry>
+      <material name="grey"><color rgba="0.5 0.5 0.5 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.1 0.1 0.1"/></geometry>
+    </collision>
+  </link>
+  <joint name="joint_Hip_Left" type="revolute">
+    <parent link="base_link"/>
+    <child link="Hip_Left"/>
+    <origin xyz="0.018 0.08 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="1" velocity="1"/>
+  </joint>
+  <joint name="joint_Sartorius_Left_Upper" type="revolute">
+    <parent link="Hip_Left"/>
+    <child link="Sartorius_Left_Upper"/>
+    <origin xyz="0.034 0.053 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="1" velocity="1"/>
+  </joint>
+  <joint name="joint_Knee_Left" type="revolute">
+    <parent link="Sartorius_Left_Upper"/>
+    <child link="Knee_Left"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="1" velocity="1"/>
+  </joint>
+  <joint name="joint_Tendon_LT" type="revolute">
+    <parent link="Knee_Left"/>
+    <child link="Tendon_LT"/>
+    <origin xyz="0.033 -0.024 -0.044" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="1" velocity="1"/>
+  </joint>
+</robot>

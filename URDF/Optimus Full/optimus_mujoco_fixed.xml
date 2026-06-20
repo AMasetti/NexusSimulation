@@ -1,0 +1,266 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="Assembly">
+  <option iterations="50" timestep="0.001" solver="PGS" gravity="0 0 -9.81" />
+
+  <compiler angle="radian" meshdir="meshes" eulerseq="zyx" autolimits="true" />
+
+  <default>
+    <joint limited="true" damping="0.01" armature="0.01" frictionloss="0.01" />
+    <geom condim="4" contype="1" conaffinity="15" friction="0.9 0.2 0.2" solref="0.001 2" />
+    <motor ctrllimited="true" />
+    <equality solref="0.001 2" />
+    <default class="visualgeom">
+      <geom material="visualgeom" condim="1" contype="0" conaffinity="0" />
+    </default>
+  </default>
+
+  <asset>
+    <mesh name="base_link" content_type="model/stl" file="base_link.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Showlder-R" content_type="model/stl" file="Showlder-R.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Showlder-L" content_type="model/stl" file="Showlder-L.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Arm-R" content_type="model/stl" file="Arm-R.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Arm-L" content_type="model/stl" file="Arm-L.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Forearm-R" content_type="model/stl" file="Forearm-R.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Forearm-L" content_type="model/stl" file="Forearm-L.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Hip-Assembly" content_type="model/stl" file="Hip-Assembly.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Hip-R" content_type="model/stl" file="Hip-R.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Hip-L" content_type="model/stl" file="Hip-L.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Sartorius-RT" content_type="model/stl" file="Sartorius-RT.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Sartorius-RB" content_type="model/stl" file="Sartorius-RB.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Sartorius-LT" content_type="model/stl" file="Sartorius-LT.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Sartorius-LB" content_type="model/stl" file="Sartorius-LB.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Tendon-RT" content_type="model/stl" file="Tendon-RT.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Tendon-RB" content_type="model/stl" file="Tendon-RB.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Tendon-LT" content_type="model/stl" file="Tendon-LT.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Tendon-LB" content_type="model/stl" file="Tendon-LB.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Knee-R" content_type="model/stl" file="Knee-R.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Knee-L" content_type="model/stl" file="Knee-L.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Anckle-R" content_type="model/stl" file="Anckle-R.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Anckle-L" content_type="model/stl" file="Anckle-L.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Feet-R" content_type="model/stl" file="Feet-R.stl" scale="0.001 0.001 0.001" />
+    <mesh name="Feet-L" content_type="model/stl" file="Feet-L.stl" scale="0.001 0.001 0.001" />
+    <texture name="texplane" type="2d" builtin="checker" rgb1=".0 .0 .0" rgb2=".8 .8 .8" width="100" height="100" />
+    <material name="matplane" reflectance="0." texture="texplane" texrepeat="1 1" texuniform="true" />
+    <material name="visualgeom" rgba="0.5 0.9 0.2 1" />
+  </asset>
+
+  <worldbody>
+    <light directional="true" diffuse="0.4 0.4 0.4" specular="0.1 0.1 0.1" pos="0 0 5.0" dir="0 0 -1" castshadow="false" />
+    <light directional="true" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" pos="0 0 4" dir="0 0 -1" />
+    <geom name="ground" type="plane" pos="0 0 0" size="100 100 0.001" quat="1 0 0 0" material="matplane" condim="3" conaffinity="15" />
+    <camera name="fixed" pos="0 -3.0 0.8057070389960249" xyaxes="1 0 0 0 0 1" />
+    <camera name="track" mode="trackcom" pos="0 -3.0 0.8057070389960249" xyaxes="1 0 0 0 0 1" />
+    <body name="root" pos="0 0 0.3057070389960249" quat="1 0 0 0">
+      <freejoint name="root" />
+      <site name="imu" size="0.01" pos="0 0 0" />
+      <geom name="Hip-Assembly_collision" type="mesh" mesh="Hip-Assembly" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+      <geom type="mesh" rgba="" mesh="Hip-Assembly" />
+      <body name="base_link" pos="-0.024 0.11867 0.03098" quat="0 1 0 0">
+        <inertial pos="-7.02001e-05 -0.0399659 0.0405054" quat="0.699085 0.111236 -0.110295 0.697669" mass="3.37609" diaginertia="0.0169113 0.0155457 0.00510884" />
+        <joint name="Servo-Hip-Body-Rotation" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+        <geom name="base_link_collision" pos="0.024 0.11917 0.03098" quat="0 -1 0 0" type="mesh" mesh="base_link" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+        <geom type="mesh" rgba="" mesh="base_link" pos="0.024 0.11917 0.03098" quat="0 -1 0 0" />
+        <body name="Showlder-L" pos="0.0599537 -0.007315 -0.0813517" quat="0 0.707107 0 -0.707107">
+          <inertial pos="0.00099494 -0.00125444 -0.0138705" quat="0.671234 0.73561 -0.0626984 0.0662726" mass="0.104433" diaginertia="7.2912e-05 6.10223e-05 2.44207e-05" />
+          <joint name="Servo-Showlder-L-Front-Back" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+          <geom name="Showlder-L_collision" pos="-0.112418 -0.126604 0.0359537" quat="0.707107 0 0.707107 0" type="mesh" mesh="Showlder-L" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+          <geom type="mesh" rgba="" mesh="Showlder-L" pos="-0.112418 -0.126604 0.0359537" quat="0.707107 0 0.707107 0" />
+          <body name="Arm-L" pos="0.00420563 -0.025914 -0.0375" quat="0.5 -0.5 0.5 0.5">
+            <inertial pos="0.00068707 0.0391112 0.0300905" quat="0.706308 0.707563 0.0156208 -0.0154925" mass="0.765422" diaginertia="0.000973013 0.000895988 0.000149392" />
+            <joint name="Servo-Showlder-L-Inward-Outward" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+            <geom name="Arm-L_collision" pos="-0.158371 0.118113 -0.119532" quat="0.707107 0.707107 0 0" type="mesh" mesh="Arm-L" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+            <geom type="mesh" rgba="" mesh="Arm-L" pos="-0.158371 0.118113 -0.119532" quat="0.707107 0.707107 0 0" />
+            <body name="Forearm-L" pos="0 0.078 0" quat="0 1 0 0">
+              <inertial pos="0.00767246 -0.0604358 -0.0258936" quat="0.691973 0.715954 0.0671433 0.0638379" mass="1.01252" diaginertia="0.000888184 0.000629523 0.000433296" />
+              <joint name="Servo-Forearm-L" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+              <geom name="Forearm-L_collision" pos="-0.0734537 -0.0386234 0.10069" quat="0.707107 -0.707107 0 0" type="mesh" mesh="Forearm-L" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+              <geom type="mesh" rgba="" mesh="Forearm-L" pos="-0.0734537 -0.0386234 0.10069" quat="0.707107 -0.707107 0 0" />
+            </body>
+          </body>
+        </body>
+        <body name="Showlder-R" pos="-0.0599537 -0.007315 -0.0813517" quat="0 -0.707107 0 0.707107">
+          <inertial pos="0.00099494 -0.00125444 0.0138705" quat="0.73561 0.671234 0.0662726 -0.0626984" mass="0.104433" diaginertia="7.2912e-05 6.10223e-05 2.44207e-05" />
+          <joint name="Servo-Showlder-R-Front-Back" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+          <geom name="Showlder-R_collision" pos="-0.112418 -0.126604 -0.0359537" quat="0.707107 0 -0.707107 0" type="mesh" mesh="Showlder-R" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+          <geom type="mesh" rgba="" mesh="Showlder-R" pos="-0.112418 -0.126604 -0.0359537" quat="0.707107 0 -0.707107 0" />
+          <body name="Arm-R" pos="0.00420563 -0.025914 0.0375" quat="0.5 0.5 0.5 -0.5">
+            <inertial pos="-0.00068707 -0.0391112 -0.0300905" quat="0.706308 0.707563 0.0156208 -0.0154925" mass="0.765422" diaginertia="0.000973013 0.000895988 0.000149392" />
+            <joint name="Servo-Showlder-R-Inward-Outward" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+            <geom name="Arm-R_collision" pos="0.158371 -0.118113 0.119532" quat="0 0 -0.707107 0.707107" type="mesh" mesh="Arm-R" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+            <geom type="mesh" rgba="" mesh="Arm-R" pos="0.158371 -0.118113 0.119532" quat="0 0 -0.707107 0.707107" />
+            <body name="Forearm-R" pos="0 -0.078 0" quat="0 -1 0 0">
+              <inertial pos="-0.00767246 0.0604358 0.0258936" quat="0.691973 0.715954 0.0671433 0.0638379" mass="1.01252" diaginertia="0.000888184 0.000629523 0.000433296" />
+              <joint name="Servo-Forearm-R" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+              <geom name="Forearm-R_collision" pos="0.121454 0.0386234 -0.10069" quat="0.707107 0.707107 0 0" type="mesh" mesh="Forearm-R" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+              <geom type="mesh" rgba="" mesh="Forearm-R" pos="0.121454 0.0386234 -0.10069" quat="0.707107 0.707107 0 0" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="Hip-L" pos="0.018 0.098495 -0.00203001" quat="0.707107 -0.707107 0 0">
+        <inertial pos="-8.51224e-06 0.0110056 0.0307643" quat="0.672466 0.740128 -0.00047002 0.000435502" mass="0.459801" diaginertia="0.000204336 0.000168581 0.000104971" />
+        <joint name="Servo-Hip-L" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+        <geom name="Hip-L_collision" pos="-0.018 -0.00203001 -0.098495" quat="0.707107 0.707107 0 0" type="mesh" mesh="Hip-L" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+        <geom type="mesh" rgba="" mesh="Hip-L" pos="-0.018 -0.00203001 -0.098495" quat="0.707107 0.707107 0 0" />
+        <body name="Sartorius-LT" pos="0.015 0.026475 0.00599" quat="0.5 0.5 -0.5 -0.5">
+          <inertial pos="-0.0419908 3.97649e-05 0.00886589" quat="0.535924 0.461551 0.462808 0.534383" mass="0.332612" diaginertia="0.0001468 0.000106495 6.17401e-05" />
+          <joint name="Unactuated-Knee-L-Top" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+          <geom name="Sartorius-LT_collision" pos="0.028505 -0.104485 0.033" quat="0.707107 0 0.707107 0" type="mesh" mesh="Sartorius-LT" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+          <geom type="mesh" rgba="" mesh="Sartorius-LT" pos="0.028505 -0.104485 0.033" quat="0.707107 0 0.707107 0" />
+          <body name="Knee-L" pos="-0.053175 0 -0.0205">
+            <inertial pos="-0.027325 0.00284397 0.0260355" quat="0.997618 -0.0689785 0 0" mass="0.185929" diaginertia="0.000148119 0.000147277 7.74697e-05" />
+            <joint name="Servo-Knee-L-Top" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+            <geom name="Knee-L_collision" pos="0.08168 -0.104485 0.0535" quat="0.707107 0 0.707107 0" type="mesh" mesh="Knee-L" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+            <geom type="mesh" rgba="" mesh="Knee-L" pos="0.08168 -0.104485 0.0535" quat="0.707107 0 0.707107 0" />
+            <body name="Sartorius-LB" pos="-0.05465 0 0" quat="0 1 0 0">
+              <inertial pos="-0.0111842 -3.97748e-05 -0.0293659" quat="0.535933 0.461553 0.462802 0.534378" mass="0.332612" diaginertia="0.000146799 0.000106493 6.1739e-05" />
+              <joint name="Servo-Knee-L-Bottom" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+              <geom name="Sartorius-LB_collision" pos="0.13633 0.159485 -0.0535" quat="0.707107 0 -0.707107 0" type="mesh" mesh="Sartorius-LB" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+              <geom type="mesh" rgba="" mesh="Sartorius-LB" pos="0.13633 0.159485 -0.0535" quat="0.707107 0 -0.707107 0" />
+              <body name="Anckle-L" pos="-0.053175 0 -0.0205" quat="1 0 0 0">
+                <inertial pos="0.0306879 0.0417962 -0.0137203" quat="0.617412 0.322418 -0.635537 0.333081" mass="0.62519" diaginertia="0.0117137 0.0116035 0.000203526" />
+                <joint name="Unactuated-Knee-L-Bottom" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+                <geom name="Anckle-L_collision" pos="0.189505 0.159485 -0.033" quat="0.707107 0 -0.707107 0" type="mesh" mesh="Anckle-L" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+                <geom type="mesh" rgba="" mesh="Anckle-L" pos="0.189505 0.159485 -0.033" quat="0.707107 0 -0.707107 0" />
+                <body name="Tendon-LB" pos="0.024 -0.044 -0.003">
+                  <inertial pos="0.0264697 -4.67704e-09 -0.01175" quat="0.5 0.5 0.5 0.5" mass="0.072197" diaginertia="2.28495e-05 1.99011e-05 3.53003e-06" />
+                  <joint name="Unactuated-Tendon-L-Bottom" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+                  <geom name="Tendon-LB_collision" pos="0.165505 0.203485 -0.0295" quat="0.707107 0 -0.707107 0" type="mesh" mesh="Tendon-LB" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+                  <geom type="mesh" rgba="" mesh="Tendon-LB" pos="0.165505 0.203485 -0.0295" quat="0.707107 0 -0.707107 0" />
+                </body>
+                <body name="Feet-L" pos="-0.026475 0.00599 -0.015" quat="0.5 0.5 -0.5 0.5">
+                  <inertial pos="0.0107796 0.0279837 0.0244988" quat="0.677354 -0.00497667 -0.00334038 0.735633" mass="0.355911" diaginertia="0.000399704 0.00031016 0.000134652" />
+                  <joint name="Servo-Ankle-L" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
+                  <geom name="Feet-L_collision" pos="-0.0173108 -0.215446 -0.188951" quat="0.707107 0.707107 0 0" type="mesh" mesh="Feet-L" contype="1" conaffinity="15" density="0" group="1" class="visualgeom" />
+                  <geom type="mesh" rgba="" mesh="Feet-L" pos="-0.0173108 -0.215446 -0.188951" quat="0.707107 0.707107 0 0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="Tendon-LT" pos="0.012 0.050475 0.04999" quat="0.5 0.5 -0.5 -0.5">
+          <inertial pos="-0.0264697 4.67704e-09 0.01175" quat="0.5 0.5 0.5 0.5" mass="0.072197" diaginertia="2.28495e-05 1.99011e-05 3.53003e-06" />
+          <joint name="Unactuated-Tendon-L-Top" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+          <geom name="Tendon-LT_collision" pos="0.052505 -0.148485 0.0295" quat="0.707107 0 0.707107 0" type="mesh" mesh="Tendon-LT" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+          <geom type="mesh" rgba="" mesh="Tendon-LT" pos="0.052505 -0.148485 0.0295" quat="0.707107 0 0.707107 0" />
+        </body>
+      </body>
+      <body name="Hip-R" pos="-0.066 0.098495 -0.00203001" quat="0.707107 0.707107 0 0">
+        <inertial pos="8.51224e-06 -0.0110056 -0.0307643" quat="0.672466 0.740128 -0.00047002 0.000435502" mass="0.459801" diaginertia="0.000204336 0.000168581 0.000104971" />
+        <joint name="Servo-Hip-R" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+        <geom name="Hip-R_collision" pos="0.018 0.00203001 0.098495" quat="0 0 -0.707107 0.707107" type="mesh" mesh="Hip-R" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+        <geom type="mesh" rgba="" mesh="Hip-R" pos="0.018 0.00203001 0.098495" quat="0 0 -0.707107 0.707107" />
+        <body name="Sartorius-RT" pos="-0.015 -0.026475 -0.00599" quat="0.5 0.5 0.5 0.5">
+          <inertial pos="-0.0419908 -3.97649e-05 0.00886589" quat="0.534383 0.462808 0.461551 0.535924" mass="0.332612" diaginertia="0.0001468 0.000106495 6.17401e-05" />
+          <joint name="Unactuated-Knee-R-Top" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
+          <geom name="Sartorius-RT_collision" pos="0.028505 0.104485 0.033" quat="0 -0.707107 0 0.707107" type="mesh" mesh="Sartorius-RT" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+          <geom type="mesh" rgba="" mesh="Sartorius-RT" pos="0.028505 0.104485 0.033" quat="0 -0.707107 0 0.707107" />
+          <body name="Knee-R" pos="-0.053175 0 -0.0205">
+            <inertial pos="-0.027325 -0.00284397 0.0260355" quat="0.997618 0.0689785 0 0" mass="0.185929" diaginertia="0.000148119 0.000147277 7.74697e-05" />
+            <joint name="Servo-Knee-R-Top" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
+            <geom name="Knee-R_collision" pos="0.08168 0.104485 0.0535" quat="0 -0.707107 0 0.707107" type="mesh" mesh="Knee-R" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+            <geom type="mesh" rgba="" mesh="Knee-R" pos="0.08168 0.104485 0.0535" quat="0 -0.707107 0 0.707107" />
+            <body name="Sartorius-RB" pos="-0.05465 0 0" quat="0 1 0 0">
+              <inertial pos="-0.0111842 3.97748e-05 -0.0293659" quat="0.534378 0.462802 0.461553 0.535933" mass="0.332612" diaginertia="0.000146799 0.000106493 6.1739e-05" />
+              <joint name="Servo-Knee-R-Bottom" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
+              <geom name="Sartorius-RB_collision" pos="0.13633 -0.159485 -0.0535" quat="0 -0.707107 0 -0.707107" type="mesh" mesh="Sartorius-RB" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+              <geom type="mesh" rgba="" mesh="Sartorius-RB" pos="0.13633 -0.159485 -0.0535" quat="0 -0.707107 0 -0.707107" />
+              <body name="Anckle-R" pos="-0.053175 0 -0.0205" quat="1 0 0 0">
+                <inertial pos="-0.0151824 0.0262876 -0.0137203" quat="-0.0399608 0.700537 0.0244828 0.712076" mass="0.62519" diaginertia="0.000309351 0.000260723 0.000147648" />
+                <joint name="Unactuated-Knee-R-Bottom" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
+                <geom name="Anckle-R_collision" pos="0.189505 -0.159485 -0.033" quat="0 0.707107 0 0.707107" type="mesh" mesh="Anckle-R" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+                <geom type="mesh" rgba="" mesh="Anckle-R" pos="0.189505 -0.159485 -0.033" quat="0 0.707107 0 0.707107" />
+                <body name="Tendon-RB" pos="0.024 0.044 -0.003">
+                  <inertial pos="0.0264697 4.67704e-09 -0.01175" quat="0.5 0.5 0.5 0.5" mass="0.072197" diaginertia="2.28495e-05 1.99011e-05 3.53003e-06" />
+                  <joint name="Unactuated-Tendon-R-Bottom" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
+                  <geom name="Tendon-RB_collision" pos="0.165505 -0.203485 -0.0295" quat="0 0.707107 0 0.707107" type="mesh" mesh="Tendon-RB" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+                  <geom type="mesh" rgba="" mesh="Tendon-RB" pos="0.165505 -0.203485 -0.0295" quat="0 0.707107 0 0.707107" />
+                </body>
+                <body name="Feet-R" pos="-0.026475 -0.00599 -0.015" quat="0.5 0.5 0.5 -0.5">
+                  <inertial pos="-0.00855604 0.0526743 0.0799448" quat="0.94417 -0.321841 -0.0142594 -0.0689826" mass="0.554964" diaginertia="0.0176276 0.017573 0.000454169" />
+                  <joint name="Servo-Ankle-R" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
+                  <geom name="Feet-R_collision" pos="0.018 0.21598 0.098495" quat="0 0 -0.707107 0.707107" type="mesh" mesh="Feet-R" contype="1" conaffinity="15" density="0" group="1" class="visualgeom" />
+                  <geom type="mesh" rgba="" mesh="Feet-R" pos="0.018 0.21598 0.098495" quat="0 0 -0.707107 0.707107" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="Tendon-RT" pos="-0.012 -0.050475 -0.04999" quat="0.5 0.5 0.5 0.5">
+          <inertial pos="-0.0264697 -4.67704e-09 0.01175" quat="0.5 0.5 0.5 0.5" mass="0.072197" diaginertia="2.28495e-05 1.99011e-05 3.53003e-06" />
+          <joint name="Unactuated-Tendon-R-Top" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
+          <geom name="Tendon-RT_collision" pos="0.052505 0.148485 0.0295" quat="0 -0.707107 0 0.707107" type="mesh" mesh="Tendon-RT" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
+          <geom type="mesh" rgba="" mesh="Tendon-RT" pos="0.052505 0.148485 0.0295" quat="0 -0.707107 0 0.707107" />
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="Servo-Hip-Body-Rotation" joint="Servo-Hip-Body-Rotation" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    <motor name="Servo-Showlder-L-Front-Back" joint="Servo-Showlder-L-Front-Back" ctrllimited="true" ctrlrange="-3.2 3.2" gear="1" />
+    <motor name="Servo-Showlder-L-Inward-Outward" joint="Servo-Showlder-L-Inward-Outward" ctrllimited="true" ctrlrange="-3.2 3.2" gear="1" />
+    <motor name="Servo-Forearm-L" joint="Servo-Forearm-L" ctrllimited="true" ctrlrange="-3.2 3.2" gear="1" />
+    <motor name="Servo-Showlder-R-Front-Back" joint="Servo-Showlder-R-Front-Back" ctrllimited="true" ctrlrange="-3.2 3.2" gear="1" />
+    <motor name="Servo-Showlder-R-Inward-Outward" joint="Servo-Showlder-R-Inward-Outward" ctrllimited="true" ctrlrange="-3.2 3.2" gear="1" />
+    <motor name="Servo-Forearm-R" joint="Servo-Forearm-R" ctrllimited="true" ctrlrange="-3.2 3.2" gear="1" />
+    <motor name="Servo-Hip-L" joint="Servo-Hip-L" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    <motor name="Servo-Knee-L-Top" joint="Servo-Knee-L-Top" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    <motor name="Servo-Knee-L-Bottom" joint="Servo-Knee-L-Bottom" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    <motor name="Servo-Ankle-L" joint="Servo-Ankle-L" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    <motor name="Servo-Hip-R" joint="Servo-Hip-R" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    <motor name="Servo-Knee-R-Top" joint="Servo-Knee-R-Top" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    <motor name="Servo-Knee-R-Bottom" joint="Servo-Knee-R-Bottom" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    <motor name="Servo-Ankle-R" joint="Servo-Ankle-R" ctrllimited="true" ctrlrange="-9.4 9.4" gear="1" />
+    </actuator>
+
+  <sensor>
+    <actuatorpos name="Servo-Hip-Body-Rotation_p" actuator="Servo-Hip-Body-Rotation" />
+    <actuatorvel name="Servo-Hip-Body-Rotation_v" actuator="Servo-Hip-Body-Rotation" />
+    <actuatorfrc name="Servo-Hip-Body-Rotation_f" actuator="Servo-Hip-Body-Rotation" noise="0.001" />
+    <actuatorpos name="Servo-Showlder-L-Front-Back_p" actuator="Servo-Showlder-L-Front-Back" />
+    <actuatorvel name="Servo-Showlder-L-Front-Back_v" actuator="Servo-Showlder-L-Front-Back" />
+    <actuatorfrc name="Servo-Showlder-L-Front-Back_f" actuator="Servo-Showlder-L-Front-Back" noise="0.001" />
+    <actuatorpos name="Servo-Showlder-L-Inward-Outward_p" actuator="Servo-Showlder-L-Inward-Outward" />
+    <actuatorvel name="Servo-Showlder-L-Inward-Outward_v" actuator="Servo-Showlder-L-Inward-Outward" />
+    <actuatorfrc name="Servo-Showlder-L-Inward-Outward_f" actuator="Servo-Showlder-L-Inward-Outward" noise="0.001" />
+    <actuatorpos name="Servo-Forearm-L_p" actuator="Servo-Forearm-L" />
+    <actuatorvel name="Servo-Forearm-L_v" actuator="Servo-Forearm-L" />
+    <actuatorfrc name="Servo-Forearm-L_f" actuator="Servo-Forearm-L" noise="0.001" />
+    <actuatorpos name="Servo-Showlder-R-Front-Back_p" actuator="Servo-Showlder-R-Front-Back" />
+    <actuatorvel name="Servo-Showlder-R-Front-Back_v" actuator="Servo-Showlder-R-Front-Back" />
+    <actuatorfrc name="Servo-Showlder-R-Front-Back_f" actuator="Servo-Showlder-R-Front-Back" noise="0.001" />
+    <actuatorpos name="Servo-Showlder-R-Inward-Outward_p" actuator="Servo-Showlder-R-Inward-Outward" />
+    <actuatorvel name="Servo-Showlder-R-Inward-Outward_v" actuator="Servo-Showlder-R-Inward-Outward" />
+    <actuatorfrc name="Servo-Showlder-R-Inward-Outward_f" actuator="Servo-Showlder-R-Inward-Outward" noise="0.001" />
+    <actuatorpos name="Servo-Forearm-R_p" actuator="Servo-Forearm-R" />
+    <actuatorvel name="Servo-Forearm-R_v" actuator="Servo-Forearm-R" />
+    <actuatorfrc name="Servo-Forearm-R_f" actuator="Servo-Forearm-R" noise="0.001" />
+    <actuatorpos name="Servo-Hip-L_p" actuator="Servo-Hip-L" />
+    <actuatorvel name="Servo-Hip-L_v" actuator="Servo-Hip-L" />
+    <actuatorfrc name="Servo-Hip-L_f" actuator="Servo-Hip-L" noise="0.001" />
+    <actuatorpos name="Servo-Knee-L-Top_p" actuator="Servo-Knee-L-Top" />
+    <actuatorvel name="Servo-Knee-L-Top_v" actuator="Servo-Knee-L-Top" />
+    <actuatorfrc name="Servo-Knee-L-Top_f" actuator="Servo-Knee-L-Top" noise="0.001" />
+    <actuatorpos name="Servo-Knee-L-Bottom_p" actuator="Servo-Knee-L-Bottom" />
+    <actuatorvel name="Servo-Knee-L-Bottom_v" actuator="Servo-Knee-L-Bottom" />
+    <actuatorfrc name="Servo-Knee-L-Bottom_f" actuator="Servo-Knee-L-Bottom" noise="0.001" />
+    <actuatorpos name="Servo-Ankle-L_p" actuator="Servo-Ankle-L" />
+    <actuatorvel name="Servo-Ankle-L_v" actuator="Servo-Ankle-L" />
+    <actuatorfrc name="Servo-Ankle-L_f" actuator="Servo-Ankle-L" noise="0.001" />
+    <actuatorpos name="Servo-Hip-R_p" actuator="Servo-Hip-R" />
+    <actuatorvel name="Servo-Hip-R_v" actuator="Servo-Hip-R" />
+    <actuatorfrc name="Servo-Hip-R_f" actuator="Servo-Hip-R" noise="0.001" />
+    <actuatorpos name="Servo-Knee-R-Top_p" actuator="Servo-Knee-R-Top" />
+    <actuatorvel name="Servo-Knee-R-Top_v" actuator="Servo-Knee-R-Top" />
+    <actuatorfrc name="Servo-Knee-R-Top_f" actuator="Servo-Knee-R-Top" noise="0.001" />
+    <actuatorpos name="Servo-Knee-R-Bottom_p" actuator="Servo-Knee-R-Bottom" />
+    <actuatorvel name="Servo-Knee-R-Bottom_v" actuator="Servo-Knee-R-Bottom" />
+    <actuatorfrc name="Servo-Knee-R-Bottom_f" actuator="Servo-Knee-R-Bottom" noise="0.001" />
+    <actuatorpos name="Servo-Ankle-R_p" actuator="Servo-Ankle-R" />
+    <actuatorvel name="Servo-Ankle-R_v" actuator="Servo-Ankle-R" />
+    <actuatorfrc name="Servo-Ankle-R_f" actuator="Servo-Ankle-R" noise="0.001" />
+    <framequat name="orientation" objtype="site" noise="0.001" objname="imu" />
+    <gyro name="angular-velocity" site="imu" noise="0.005" cutoff="34.9" />
+  </sensor>
+<equality><joint name="para-thigh-R" joint1="Unactuated-Tendon-R-Top" joint2="Unactuated-Knee-R-Top" polycoef="0 1 0 0 0" /><joint name="para-shin-R" joint1="Unactuated-Tendon-R-Bottom" joint2="Unactuated-Knee-R-Bottom" polycoef="0 1 0 0 0" /><joint name="para-thigh-L" joint1="Unactuated-Tendon-L-Top" joint2="Unactuated-Knee-L-Top" polycoef="0 1 0 0 0" /><joint name="para-shin-L" joint1="Unactuated-Tendon-L-Bottom" joint2="Unactuated-Knee-L-Bottom" polycoef="0 1 0 0 0" /></equality></mujoco>

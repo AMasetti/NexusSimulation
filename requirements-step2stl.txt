@@ -1,0 +1,2 @@
+# Optional: for step_to_stl.py (STEP → STL conversion for MuJoCo)
+cadquery>=2.4.0

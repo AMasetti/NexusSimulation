@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Video recordings — use LFS or external storage instead
+*.mov
+*.mp4
+*.avi
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Logs and training outputs
+logs/
+*.zip
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor
+.vscode/
+.cursor/

@@ -1,0 +1,9 @@
+[
+  {
+    "sourceJointId": "joint_Tendon_LT",
+    "targetJointId": "joint_Sartorius_Left_Upper",
+    "relationship": "linear",
+    "factor": 1,
+    "offset": 0
+  }
+]
