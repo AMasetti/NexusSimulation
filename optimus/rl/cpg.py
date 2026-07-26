@@ -30,24 +30,24 @@ import numpy as np
 FREQ        = 0.8       # Hz — step frequency
 
 # Joint roles (verified from MuJoCo kinematics):
-#   Hip   (Z axis) → swings foot in X (lateral). Use for lateral balance, small amp.
-#   Knee  (Z axis) → swings foot in Y (forward/back). This drives walking.
-#   Ankle (Z axis) → rotates foot, no CoM displacement. Use for push-off timing.
+#   Hip   (Z axis) → swings foot in X (lateral)
+#   Knee  (Z axis) → swings foot in Y (forward/back) — primary locomotion joint
+#   Ankle (Z axis) → rotates foot in place
 
-KNEE_AMP    = 0.25      # rad — knee swing amplitude (drives forward motion)
-HIP_AMP     = 0.06      # rad — hip lateral sway (small, for balance)
-ANKLE_AMP   = 0.08      # rad — ankle push-off at end of stance
-ARM_AMP     = 0.12      # rad — arm counter-swing
+KNEE_AMP    = 0.25      # rad — knee swing (drives forward motion)
+HIP_AMP     = 0.0       # rad — hip lateral: zeroed, causes drift; let RL handle balance
+ANKLE_AMP   = 0.06      # rad — small ankle oscillation for natural gait
+ARM_AMP     = 0.10      # rad — shoulder counter-swing
 
 # Phase offsets
-KNEE_PHASE  = 0.0       # knee is the primary driver — no offset
-ANKLE_PHASE = -np.pi/4  # ankle pushes off slightly after knee peak
-HIP_PHASE   = np.pi/2   # hip sway peaks at mid-swing (balance)
+KNEE_PHASE  = 0.0
+ANKLE_PHASE = -np.pi/4
 
 LEFT_PHASE  = 0.0
-RIGHT_PHASE = np.pi     # legs anti-phase
+RIGHT_PHASE = np.pi
 
-PITCH_GAIN  = 1.0       # IMU pitch → knee correction (forward lean → extend knee)
+PITCH_GAIN  = 0.8       # IMU pitch → knee correction
+YAW_GAIN    = 0.5       # heading error → differential knee to steer straight
 
 
 class CPG:
@@ -70,16 +70,19 @@ class CPG:
         self.phase_R = (self.phase_R + self._omega * dt) % (2 * np.pi)
         return self._angles()
 
-    def stabilise(self, targets: dict, pitch: float) -> dict:
+    def stabilise(self, targets: dict, pitch: float, yaw: float = 0.0) -> dict:
         """
-        Reactive pitch correction using IMU.
-        pitch > 0 = leaning forward → reduce knee extension to slow down.
+        Reactive corrections using IMU.
+        pitch > 0 = leaning forward → pull knees back slightly.
+        yaw   > 0 = drifting right  → speed up left leg to steer back.
         """
-        correction = np.clip(-PITCH_GAIN * pitch, -0.15, 0.15)
-        targets["Servo-Knee-L-Top"]    = np.clip(targets["Servo-Knee-L-Top"]    + correction, -1.3, 1.3)
-        targets["Servo-Knee-L-Bottom"] = np.clip(targets["Servo-Knee-L-Bottom"] + correction, -1.3, 1.3)
-        targets["Servo-Knee-R-Top"]    = np.clip(targets["Servo-Knee-R-Top"]    + correction, -1.3, 1.3)
-        targets["Servo-Knee-R-Bottom"] = np.clip(targets["Servo-Knee-R-Bottom"] + correction, -1.3, 1.3)
+        pitch_corr = np.clip(-PITCH_GAIN * pitch, -0.15, 0.15)
+        yaw_corr   = np.clip(-YAW_GAIN   * yaw,   -0.10, 0.10)
+
+        for k in ("Servo-Knee-L-Top", "Servo-Knee-L-Bottom"):
+            targets[k] = np.clip(targets[k] + pitch_corr + yaw_corr, -1.3, 1.3)
+        for k in ("Servo-Knee-R-Top", "Servo-Knee-R-Bottom"):
+            targets[k] = np.clip(targets[k] + pitch_corr - yaw_corr, -1.3, 1.3)
         return targets
 
     def set_freq(self, freq: float):
@@ -89,37 +92,30 @@ class CPG:
     # ── Internal ─────────────────────────────────────────────────────────────
 
     def _leg(self, phase: float) -> tuple:
-        """
-        Returns (hip, knee, ankle) target angles for a leg at given phase.
-
-        Knee: drives forward swing (Y axis) — primary locomotion joint.
-              Sinusoidal: positive = foot swings forward, negative = pushes back.
-        Hip:  small lateral sway for balance (X axis).
-        Ankle: push-off timing at end of stance.
-        """
         knee  = KNEE_AMP  * np.sin(phase + KNEE_PHASE)
-        hip   = HIP_AMP   * np.sin(phase + HIP_PHASE)
         ankle = ANKLE_AMP * np.sin(phase + ANKLE_PHASE)
-        return hip, knee, ankle
+        return knee, ankle
 
     def _angles(self) -> dict:
-        lh, lk, la = self._leg(self.phase_L)
-        rh, rk, ra = self._leg(self.phase_R)
+        lk, la = self._leg(self.phase_L)
+        rk, ra = self._leg(self.phase_R)
 
-        # Arms counter-swing with opposite knee (natural gait)
+        # Arms counter-swing with opposite leg (natural human gait)
         arm_L = ARM_AMP * np.sin(self.phase_R)
         arm_R = ARM_AMP * np.sin(self.phase_L)
 
         return {
-            "Servo-Hip-L":         lh,
+            # Legs — hip stays zero (no lateral sway, avoids drift)
+            "Servo-Hip-L":         0.0,
             "Servo-Knee-L-Top":    lk,
             "Servo-Knee-L-Bottom": lk,
             "Servo-Ankle-L":       la,
-            "Servo-Hip-R":         rh,
+            "Servo-Hip-R":         0.0,
             "Servo-Knee-R-Top":    rk,
             "Servo-Knee-R-Bottom": rk,
             "Servo-Ankle-R":       ra,
             "Servo-Hip-Body-Rotation": 0.0,
+            # Arms — only front/back swing, forearms locked at zero
             "Servo-Showlder-L-Front-Back":     arm_L,
             "Servo-Showlder-R-Front-Back":     arm_R,
             "Servo-Showlder-L-Inward-Outward": 0.0,
