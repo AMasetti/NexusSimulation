@@ -148,15 +148,18 @@ class OptimusEnv(gym.Env):
         fallen = self._is_fallen() or bool(np.any(~np.isfinite(obs)))
 
         # ---- Reward ----
-        root_z   = self.data.qpos[2]          # height
+        root_z   = self.data.qpos[2]
         linvel_y = self.data.qvel[1]           # forward velocity (+Y = forward)
         angvel   = self.data.qvel[3:6]
 
-        # Height reward: want z ≈ 0.25 (standing height)
-        r_height = np.exp(-10.0 * (root_z - 0.251) ** 2)
+        # Height: linear gradient everywhere above ground → always has gradient
+        r_height = np.clip(root_z / 0.251, 0.0, 1.0)
 
-        # Forward velocity reward
-        r_forward = np.clip(linvel_y, -1.0, 2.0)
+        # Survival: +0.2 per step alive so standing is always worth doing
+        r_survive = 0.2
+
+        # Forward velocity (only rewarded once robot is tall enough to matter)
+        r_forward = np.clip(linvel_y, -1.0, 2.0) if root_z > 0.15 else 0.0
 
         # Stability: penalise angular velocity
         r_stable = -0.1 * float(np.sum(angvel ** 2))
@@ -164,10 +167,10 @@ class OptimusEnv(gym.Env):
         # Action smoothness penalty
         r_action = -0.005 * float(np.sum(action ** 2))
 
-        reward = r_height + 0.5 * r_forward + r_stable + r_action
+        reward = r_height + r_survive + 0.5 * r_forward + r_stable + r_action
 
         if fallen:
-            reward -= 5.0
+            reward -= 1.0  # smaller penalty — don't incentivise fast resets
             obs = np.nan_to_num(obs, nan=0.0, posinf=0.0, neginf=0.0)
 
         self._steps += 1
