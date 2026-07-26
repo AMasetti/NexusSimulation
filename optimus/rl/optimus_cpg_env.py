@@ -35,8 +35,8 @@ PARA_PAIRS = [
 ]
 
 MAX_RESIDUAL = 0.15   # rad — max correction the RL policy can add to CPG
-KP           = 8.0    # position PD gains for CPG target tracking
-KD           = 0.4
+KP           = 4.0    # lower gain — avoids saturating 0.98 N·m servos
+KD           = 0.3
 
 # Actuator name order (matches model.nu ordering)
 ACTUATOR_NAMES = [
