@@ -132,9 +132,13 @@ class OptimusCPGEnv(gym.Env):
         return np.concatenate([cpg_phase, quat, angvel, linvel, jpos, jvel])
 
     def _imu_pitch(self) -> float:
-        """Approximate pitch from quaternion (rotation around X axis)."""
         q = self.data.qpos[3:7]  # w, x, y, z
         return float(2.0 * (q[0] * q[2] - q[3] * q[1]))
+
+    def _imu_yaw(self) -> float:
+        """Yaw deviation from +Y forward direction."""
+        q = self.data.qpos[3:7]
+        return float(2.0 * (q[0] * q[3] + q[1] * q[2]))
 
     def _is_fallen(self) -> bool:
         if self.data.qpos[2] < 0.10:
@@ -170,7 +174,8 @@ class OptimusCPGEnv(gym.Env):
 
         # IMU stabilisation (reactive, not learned — always on)
         pitch = self._imu_pitch()
-        cpg_targets = self._cpg.stabilise(cpg_targets, pitch)
+        yaw   = self._imu_yaw()
+        cpg_targets = self._cpg.stabilise(cpg_targets, pitch, yaw)
 
         # Apply CPG + RL residual as torques
         self._set_ctrl_from_targets(cpg_targets, action)
@@ -196,13 +201,14 @@ class OptimusCPGEnv(gym.Env):
         # Survival scaled by height — reduced so forward motion dominates
         r_survive  = 0.1 * r_height
 
-        # Stability — penalise angular velocity
+        # Stability — penalise angular velocity and lateral drift
         r_stable   = -0.05 * float(np.sum(self.data.qvel[3:6] ** 2))
+        r_straight = -0.5  * float(self.data.qvel[0] ** 2)  # penalise X velocity (sideways)
 
         # Small action penalty — keep residuals small (trust the CPG)
         r_action   = -0.002 * float(np.sum(action ** 2))
 
-        reward = r_height + r_survive + 3.0 * np.clip(r_forward, -0.5, 3.0) + r_stable + r_action
+        reward = r_height + r_survive + 3.0 * np.clip(r_forward, -0.5, 3.0) + r_stable + r_straight + r_action
 
         if fallen:
             reward -= 1.0
