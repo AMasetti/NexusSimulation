@@ -120,17 +120,22 @@ def train(resume=False):
 
 
 def evaluate(model_path):
+    import time
     env = OptimusEnv(render_mode="human")
     model = PPO.load(model_path, device="mps")
+    ctrl_dt = env.ctrl_dt  # 0.02s per action → 50Hz realtime
 
     obs, _ = env.reset()
     total_reward = 0.0
     steps = 0
     while True:
+        t0 = time.perf_counter()
         action, _ = model.predict(obs, deterministic=True)
         obs, reward, terminated, truncated, _ = env.step(action)
         total_reward += reward
         steps += 1
+        elapsed = time.perf_counter() - t0
+        time.sleep(max(0.0, ctrl_dt - elapsed))
         if terminated or truncated:
             print(f"Episode done — steps={steps}  total_reward={total_reward:.2f}")
             obs, _ = env.reset()
