@@ -8,7 +8,7 @@ URDF_PATH = os.path.join(os.path.dirname(__file__), "../urdf/full/optimus_mujoco
 
 PARA_KP = 400.0
 PARA_KD = 20.0
-PARA_FMAX = 50.0  # ponytail: clamp prevents NaN from large velocity errors at episode start
+PARA_FMAX = 5.0  # ~5x actuator max torque — enough for constraint, not unphysical
 
 PARA_PAIRS = [
     ("Servo-Knee-L-Top",    "Unactuated-Knee-L-Top",      -1),
