@@ -105,10 +105,10 @@ class OptimusEnv(gym.Env):
         return np.concatenate([quat, angvel, linvel, jpos, jvel]).astype(np.float32)
 
     def _is_fallen(self):
+        # Too low — collapsed on the ground
+        if self.data.qpos[2] < 0.10:
+            return True
         mat = self.data.xmat[self._root_id].reshape(3, 3)
-        # z-column of rotation matrix = world-up in body frame
-        # if body z-axis (up) has negative world-z component, robot is upside-down
-        # allow up to ~60° tilt before calling it fallen
         return mat[2, 2] < 0.5
 
     # ------------------------------------------------------------------
@@ -155,8 +155,8 @@ class OptimusEnv(gym.Env):
         # Height: linear gradient everywhere above ground → always has gradient
         r_height = np.clip(root_z / 0.251, 0.0, 1.0)
 
-        # Survival: +0.2 per step alive so standing is always worth doing
-        r_survive = 0.2
+        # Survival: scaled by height so crawling on ground gets near zero
+        r_survive = 0.2 * np.clip(root_z / 0.251, 0.0, 1.0)
 
         # Forward velocity (only rewarded once robot is tall enough to matter)
         r_forward = np.clip(linvel_y, -1.0, 2.0) if root_z > 0.15 else 0.0
