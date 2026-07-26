@@ -193,8 +193,8 @@ class OptimusCPGEnv(gym.Env):
         # Height — linear, always provides gradient
         r_height   = np.clip(root_z / 0.251, 0.0, 1.0)
 
-        # Survival scaled by height (no reward for lying on floor)
-        r_survive  = 0.2 * r_height
+        # Survival scaled by height — reduced so forward motion dominates
+        r_survive  = 0.1 * r_height
 
         # Stability — penalise angular velocity
         r_stable   = -0.05 * float(np.sum(self.data.qvel[3:6] ** 2))
@@ -202,7 +202,7 @@ class OptimusCPGEnv(gym.Env):
         # Small action penalty — keep residuals small (trust the CPG)
         r_action   = -0.002 * float(np.sum(action ** 2))
 
-        reward = r_height + r_survive + np.clip(r_forward, -1.0, 2.0) + r_stable + r_action
+        reward = r_height + r_survive + 3.0 * np.clip(r_forward, -0.5, 3.0) + r_stable + r_action
 
         if fallen:
             reward -= 1.0
