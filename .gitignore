@@ -25,3 +25,10 @@ logs/
 # Editor
 .vscode/
 .cursor/
+
+# RL training artifacts — models too large for git
+optimus/rl/checkpoints/*.zip
+optimus/rl/checkpoints/best/
+optimus/rl/logs/
+optimus/rl/MUJOCO_LOG.TXT
+optimus/rl/checkpoints/optimus_ppo_vecnormalize_*.pkl
