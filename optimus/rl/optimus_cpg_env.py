@@ -1,14 +1,21 @@
 """
-Optimus CPG + Residual RL environment.
+Optimus CPG + Residual RL environment — hardware-faithful.
 
-The policy outputs residual corrections on top of the CPG gait.
-Action space: 15-dim corrections in [-1, 1], scaled to ±MAX_RESIDUAL rad.
-Observation: CPG phase (sin/cos) + IMU (quat, angvel, linvel) + joint state.
+Hardware constraints applied:
+  - Control loop: 50 Hz (PCA9685 servo PWM cadence)
+  - IMU: MPU6050 complementary filter, α=0.98, pitch/roll/yaw_rate
+  - Joint limits: from firmware config.h (knee ±70°, hip ±45°, ankle ±90°)
+  - Servo torque: MG995 stall ~0.92 N·m (legs), Futaba S3003 ~0.31 N·m (arms)
+  - Geometry: L1=L2=90 mm, L3=30 mm
 
-This is strictly better than pure RL from scratch because:
-  - CPG provides a stable rhythmic prior → policy starts near a walking gait
-  - RL only needs to learn small corrections → converges in <5M steps
-  - IMU pitch is explicitly in obs → stabilisation is learnable
+Observation (hardware-available signals only):
+  - CPG phase sin/cos (2)
+  - IMU: pitch, roll, yaw_rate (3)  ← matches MPU6050 output
+  - Joint positions (23)
+  - Joint velocities (23)
+  Total: 51 dims
+
+Action: residual corrections on top of CPG, ±MAX_RESIDUAL rad, 15 joints.
 """
 
 import numpy as np
@@ -17,12 +24,14 @@ from gymnasium import spaces
 import mujoco
 import os
 
-from cpg import CPG
+from cpg import CPG, LIM_KNEE, LIM_HIP_ROLL, LIM_HIP_PITCH, LIM_ANKLE, LIM_SHOULDER, LIM_FOREARM
 
-URDF_PATH  = os.path.join(os.path.dirname(__file__), "../urdf/full/optimus_mujoco_fixed.xml")
-PARA_KP    = 400.0
-PARA_KD    = 20.0
-PARA_FMAX  = 5.0
+URDF_PATH = os.path.join(os.path.dirname(__file__), "../urdf/full/optimus_mujoco_fixed.xml")
+
+# Parallelogram constraint (passive follower joints track driven joints)
+PARA_KP   = 400.0
+PARA_KD   = 20.0
+PARA_FMAX = 5.0
 PARA_PAIRS = [
     ("Servo-Knee-L-Top",    "Unactuated-Knee-L-Top",      -1),
     ("Servo-Knee-L-Top",    "Unactuated-Tendon-L-Top",    -1),
@@ -34,11 +43,15 @@ PARA_PAIRS = [
     ("Servo-Knee-R-Bottom", "Unactuated-Tendon-R-Bottom", +1),
 ]
 
-MAX_RESIDUAL = 0.15   # rad — max correction the RL policy can add to CPG
-KP           = 4.0    # lower gain — avoids saturating 0.98 N·m servos
-KD           = 0.3
+# Hardware: PCA9685 at 50 Hz → 20 ms control period
+CTRL_HZ      = 50
+CTRL_DT      = 1.0 / CTRL_HZ
 
-# Actuator name order (matches model.nu ordering)
+# MG995 stall torque 9.4 kg·cm = 0.92 N·m; use 90% to avoid rail saturation
+KP           = 10.0   # stronger PD — knees now have 1.96 N·m, need higher gain to use it
+KD           = 0.5
+MAX_RESIDUAL = 0.20   # rad — RL needs room to discover hip coordination for foot clearance
+
 ACTUATOR_NAMES = [
     "Servo-Hip-Body-Rotation",
     "Servo-Showlder-L-Front-Back", "Servo-Showlder-L-Inward-Outward", "Servo-Forearm-L",
@@ -47,21 +60,26 @@ ACTUATOR_NAMES = [
     "Servo-Hip-R", "Servo-Knee-R-Top", "Servo-Knee-R-Bottom", "Servo-Ankle-R",
 ]
 
-# obs: sin+cos of CPG phase (2) + quat (4) + angvel (3) + linvel (3) + jpos (23) + jvel (23) = 58
-OBS_DIM = 2 + 4 + 3 + 3 + 23 + 23
+# obs: 2 (CPG phase) + 3 (IMU: pitch, roll, yaw_rate) + 23 (jpos) + 23 (jvel) = 51
+OBS_DIM = 2 + 3 + 23 + 23
 
 
 class OptimusCPGEnv(gym.Env):
+    """
+    Optimus walking environment.
+    Worker ID optionally passed for per-worker log files.
+    """
     metadata = {"render_modes": ["human"]}
 
-    def __init__(self, render_mode=None, ctrl_dt=0.02):
+    def __init__(self, render_mode=None, worker_id: int = 0):
         super().__init__()
         self.model = mujoco.MjModel.from_xml_path(URDF_PATH)
         self.data  = mujoco.MjData(self.model)
-        self.ctrl_dt = ctrl_dt
-        self._sim_steps = max(1, int(ctrl_dt / self.model.opt.timestep))
+        self.ctrl_dt = CTRL_DT
+        self._sim_steps = max(1, int(CTRL_DT / self.model.opt.timestep))
+        self._worker_id = worker_id
 
-        # Index maps
+        # Build index maps
         self._jpos, self._jdof, self._amap = {}, {}, {}
         for i in range(self.model.njnt):
             name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, i)
@@ -81,70 +99,123 @@ class OptimusCPGEnv(gym.Env):
         self._render_mode = render_mode
         self._viewer      = None
         self._spawn_qpos  = None
+        self._spawn_qvel  = None
         self._cpg         = CPG()
+
+        # IMU complementary filter state (mirrors firmware MPU6050)
+        self._imu_pitch    = 0.0
+        self._imu_roll     = 0.0
+        self._imu_yaw_rate = 0.0
+        self._imu_alpha    = 0.98   # firmware COMPLEMENTARY_ALPHA
+
+        # Per-episode diagnostics
+        self._ep_fwd_dist  = 0.0
+        self._ep_lat_drift = 0.0
+        self._ep_falls     = 0
+        self._ep_steps     = 0
 
     # ── Sim helpers ──────────────────────────────────────────────────────────
 
     def _apply_parallelogram(self):
         for driven, follower, sign in PARA_PAIRS:
-            q_err  = sign * self.data.qpos[self._jpos[driven]] - self.data.qpos[self._jpos[follower]]
-            v_err  = sign * self.data.qvel[self._jdof[driven]] - self.data.qvel[self._jdof[follower]]
+            if driven not in self._jpos or follower not in self._jpos:
+                continue
+            q_err = sign * self.data.qpos[self._jpos[driven]] - self.data.qpos[self._jpos[follower]]
+            v_err = sign * self.data.qvel[self._jdof[driven]] - self.data.qvel[self._jdof[follower]]
             self.data.qfrc_applied[self._jdof[follower]] = np.clip(
                 PARA_KP * q_err + PARA_KD * v_err, -PARA_FMAX, PARA_FMAX
             )
 
     def _warmup(self):
         mujoco.mj_resetData(self.model, self.data)
+        # Spawn at t=0 where hip CPG base is 0 — no torque spike on first step.
+        cpg_t0 = CPG()
+        t0_targets = cpg_t0._angles(0.0)
+        self._cpg_t0_offset = 0.0
+        for name, angle in t0_targets.items():
+            if name in self._jpos:
+                self.data.qpos[self._jpos[name]] = angle
+
         saved = self.data.qpos[:7].copy()
+        roll_samples = []
         for _ in range(1000):
             self._apply_parallelogram()
             mujoco.mj_step(self.model, self.data)
             self.data.qpos[:7] = saved
             self.data.qvel[:]  = 0.0
+            # Collect roll samples for calibration (last 500 steps = settled motion)
+            if _ >= 500:
+                q = self.data.qpos[3:7]
+                roll_accel = float(np.arctan2(2*(q[0]*q[3] + q[1]*q[2]),
+                                              1 - 2*(q[2]**2 + q[3]**2)))
+                roll_samples.append(roll_accel)
+
+        self._cpg.calibrate(roll_samples)
         self._spawn_qpos = self.data.qpos.copy()
         self._spawn_qvel = self.data.qvel.copy()
 
-    def _set_ctrl_from_targets(self, cpg_targets: dict, residual: np.ndarray):
+    def _update_imu(self):
         """
-        Convert CPG angle targets + residual corrections into motor torques
-        using a simple PD controller tracking the desired joint angle.
+        Complementary filter matching firmware MPU6050::update().
+        Uses MuJoCo root body quaternion and angular velocity as ground truth.
         """
+        q = self.data.qpos[3:7]   # w, x, y, z
+        # Pitch: rotation around X (forward lean)
+        pitch_accel = float(np.arctan2(2*(q[0]*q[1] + q[2]*q[3]),
+                                       1 - 2*(q[1]**2 + q[2]**2)))
+        # Roll: rotation around Z (lateral lean)  — firmware uses atan2(ax, ay)
+        roll_accel  = float(np.arctan2(2*(q[0]*q[3] + q[1]*q[2]),
+                                       1 - 2*(q[2]**2 + q[3]**2)))
+
+        gx = float(self.data.qvel[3])   # angular velocity around X
+        gz = float(self.data.qvel[5])   # angular velocity around Z
+        gy = float(self.data.qvel[4])   # yaw rate around Y
+
+        dt = self.ctrl_dt
+        self._imu_pitch    = self._imu_alpha * (self._imu_pitch + gx * dt) + (1 - self._imu_alpha) * pitch_accel
+        self._imu_roll     = self._imu_alpha * (self._imu_roll  + gz * dt) + (1 - self._imu_alpha) * roll_accel
+        self._imu_yaw_rate = gy
+
+    def _set_ctrl(self, cpg_targets: dict, residual: np.ndarray):
         for i, name in enumerate(ACTUATOR_NAMES):
             if name not in self._amap or name not in self._jpos:
                 continue
             target = cpg_targets.get(name, 0.0) + MAX_RESIDUAL * float(residual[i])
-            target = np.clip(target, self.model.jnt_range[self._jpos[name] - 7, 0],
-                                     self.model.jnt_range[self._jpos[name] - 7, 1])
-            q  = self.data.qpos[self._jpos[name]]
-            dq = self.data.qvel[self._jdof[name]]
+            target = float(np.clip(target,
+                           self.model.jnt_range[self._jpos[name] - 7, 0],
+                           self.model.jnt_range[self._jpos[name] - 7, 1]))
+            q      = self.data.qpos[self._jpos[name]]
+            dq     = self.data.qvel[self._jdof[name]]
             torque = KP * (target - q) - KD * dq
             lo, hi = self.model.actuator_ctrlrange[self._amap[name]]
             self.data.ctrl[self._amap[name]] = np.clip(torque, lo, hi)
 
     def _get_obs(self) -> np.ndarray:
-        d = self.data
-        cpg_phase = np.array([np.sin(self._cpg.phase_L), np.cos(self._cpg.phase_L)], dtype=np.float32)
-        quat   = d.qpos[3:7].astype(np.float32)
-        angvel = d.qvel[3:6].astype(np.float32)
-        linvel = d.qvel[0:3].astype(np.float32)
-        jpos   = d.qpos[7:].astype(np.float32)
-        jvel   = d.qvel[6:].astype(np.float32)
-        return np.concatenate([cpg_phase, quat, angvel, linvel, jpos, jvel])
-
-    def _imu_pitch(self) -> float:
-        q = self.data.qpos[3:7]  # w, x, y, z
-        return float(2.0 * (q[0] * q[2] - q[3] * q[1]))
-
-    def _imu_yaw(self) -> float:
-        """Yaw deviation from +Y forward direction."""
-        q = self.data.qpos[3:7]
-        return float(2.0 * (q[0] * q[3] + q[1] * q[2]))
+        cpg_phase = np.array([np.sin(self._cpg._t * self._cpg._omega),
+                               np.cos(self._cpg._t * self._cpg._omega)], dtype=np.float32)
+        imu   = np.array([self._imu_pitch, self._imu_roll, self._imu_yaw_rate], dtype=np.float32)
+        jpos  = self.data.qpos[7:].astype(np.float32)
+        jvel  = self.data.qvel[6:].astype(np.float32)
+        return np.concatenate([cpg_phase, imu, jpos, jvel])
 
     def _is_fallen(self) -> bool:
         if self.data.qpos[2] < 0.10:
             return True
         mat = self.data.xmat[self._root_id].reshape(3, 3)
-        return mat[2, 2] < 0.5
+        return mat[2, 2] < 0.5   # torso tilt > ~60°
+
+    def diagnostics(self) -> dict:
+        """Return current episode diagnostics for live logging."""
+        return {
+            "worker":     self._worker_id,
+            "steps":      self._ep_steps,
+            "fwd_dist_m": round(self._ep_fwd_dist, 3),
+            "lat_drift_m": round(abs(self._ep_lat_drift), 3),
+            "imu_pitch":  round(np.degrees(self._imu_pitch), 1),
+            "imu_roll":   round(np.degrees(self._imu_roll), 1),
+            "yaw_rate":   round(np.degrees(self._imu_yaw_rate), 1),
+            "height_m":   round(float(self.data.qpos[2]), 3),
+        }
 
     # ── Gym API ──────────────────────────────────────────────────────────────
 
@@ -156,29 +227,39 @@ class OptimusCPGEnv(gym.Env):
         mujoco.mj_resetData(self.model, self.data)
         self.data.qpos[:] = self._spawn_qpos
         self.data.qvel[:] = self._spawn_qvel
-        noise = self.np_random.uniform(-0.02, 0.02, size=self.model.nq - 7)
+        noise = self.np_random.uniform(-0.01, 0.01, size=self.model.nq - 7)
         self.data.qpos[7:] += noise
         mujoco.mj_forward(self.model, self.data)
 
-        # Randomise CPG phase so policy learns all phases
-        self._cpg.phase_L = self.np_random.uniform(0, 2 * np.pi)
-        self._cpg.phase_R = (self._cpg.phase_L + np.pi) % (2 * np.pi)
+        # Start CPG at the same phase used during warmup (hip=0 crossing).
+        self._cpg.reset(getattr(self, '_cpg_t0_offset', 0.0))
 
-        self._steps  = 0
-        self._prev_y = self.data.qpos[1]
+        # Reset IMU filter
+        self._imu_pitch = self._imu_roll = self._imu_yaw_rate = 0.0
+
+        # Reset diagnostics
+        self._ep_fwd_dist = self._ep_lat_drift = 0.0
+        self._ep_steps = 0
+        self._prev_y = float(self.data.qpos[1])
+        self._start_x = float(self.data.qpos[0])
+
         return self._get_obs(), {}
 
     def step(self, action: np.ndarray):
-        # Advance CPG
-        cpg_targets = self._cpg.step(self.ctrl_dt)
+        # Update IMU filter (50 Hz matches CPG task; firmware IMU runs at 100Hz
+        # but CPG reads it at 100Hz — here we fuse at control cadence)
+        self._update_imu()
 
-        # IMU stabilisation (reactive, not learned — always on)
-        pitch = self._imu_pitch()
-        yaw   = self._imu_yaw()
-        cpg_targets = self._cpg.stabilise(cpg_targets, pitch, yaw)
+        # CPG step — pass IMU roll so phase reset can modulate oscillator speed
+        cpg_targets = self._cpg.step(self.ctrl_dt, roll=self._imu_roll)
 
-        # Apply CPG + RL residual as torques
-        self._set_ctrl_from_targets(cpg_targets, action)
+        # IMU stabilisation (mirrors firmware Stabilizer::compute)
+        cpg_targets = self._cpg.stabilise(
+            cpg_targets, self._imu_pitch, self._imu_roll, self._imu_yaw_rate
+        )
+
+        # Apply CPG + RL residual
+        self._set_ctrl(cpg_targets, action)
 
         for _ in range(self._sim_steps):
             self._apply_parallelogram()
@@ -188,35 +269,36 @@ class OptimusCPGEnv(gym.Env):
         fallen = self._is_fallen() or bool(np.any(~np.isfinite(obs)))
 
         # ── Reward ───────────────────────────────────────────────────────────
-        root_z = self.data.qpos[2]
-        cur_y  = self.data.qpos[1]
+        cur_y  = float(self.data.qpos[1])
+        cur_x  = float(self.data.qpos[0])
+        root_z = float(self.data.qpos[2])
 
-        # Forward progress this step (m/step)
-        r_forward  = (cur_y - self._prev_y) / self.ctrl_dt   # velocity m/s
+        fwd_vel    = (cur_y - self._prev_y) / self.ctrl_dt   # m/s forward
         self._prev_y = cur_y
 
-        # Height — linear, always provides gradient
+        # Update episode diagnostics
+        self._ep_fwd_dist  += max(0.0, cur_y - self._prev_y + fwd_vel * self.ctrl_dt)
+        self._ep_lat_drift  = cur_x - self._start_x
+        self._ep_steps     += 1
+
         r_height   = np.clip(root_z / 0.251, 0.0, 1.0)
-
-        # Survival scaled by height — reduced so forward motion dominates
         r_survive  = 0.1 * r_height
+        # Forward velocity reward — penalise standing still (marching in place scores 0, costs -0.3)
+        r_forward  = 4.0 * np.clip(fwd_vel, 0.0, 3.0) - 0.3
+        r_stable   = -0.05  * float(np.sum(self.data.qvel[3:6] ** 2))
+        r_straight = -2.0   * float(self.data.qvel[0] ** 2)   # penalise X velocity
+        r_yaw      = -1.0   * float(self.data.qvel[5] ** 2)   # penalise Z spin
+        r_action   = -0.005 * float(np.sum(action ** 2))
 
-        # Stability — penalise angular velocity and lateral drift
-        r_stable   = -0.05 * float(np.sum(self.data.qvel[3:6] ** 2))
-        r_straight = -0.5  * float(self.data.qvel[0] ** 2)  # penalise X velocity (sideways)
-
-        # Small action penalty — keep residuals small (trust the CPG)
-        r_action   = -0.002 * float(np.sum(action ** 2))
-
-        reward = r_height + r_survive + 3.0 * np.clip(r_forward, -0.5, 3.0) + r_stable + r_straight + r_action
+        reward = r_height + r_survive + r_forward + r_stable + r_straight + r_yaw + r_action
 
         if fallen:
             reward -= 1.0
             obs = np.nan_to_num(obs, nan=0.0, posinf=0.0, neginf=0.0)
 
-        self._steps += 1
+        self._ep_steps += 1
         terminated = fallen
-        truncated  = self._steps >= 2000
+        truncated  = self._ep_steps >= 2000
 
         if self._render_mode == "human":
             self.render()
