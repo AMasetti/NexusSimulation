@@ -11,8 +11,8 @@ Usage:
 import argparse, os, time, numpy as np
 
 CHECKPOINT_DIR = os.path.join(os.path.dirname(__file__), "checkpoints_cpg")
-N_ENVS         = 8
-TOTAL_STEPS    = 10_000_000   # CPG converges faster — 10M is enough
+N_ENVS         = 12
+TOTAL_STEPS    = 10_000_000
 
 
 def train(resume=False):
@@ -32,18 +32,18 @@ def train(resume=False):
 
     if resume and os.path.exists(latest):
         print(f"Resuming from {latest}")
-        model = PPO.load(latest, env=vec_env, device="cpu")
+        model = PPO.load(latest, env=vec_env, device="mps")
         vn    = os.path.join(CHECKPOINT_DIR, "vecnorm.pkl")
         if os.path.exists(vn):
             vec_env = VecNormalize.load(vn, vec_env)
     else:
         model = PPO(
             "MlpPolicy", vec_env,
-            verbose=0, device="cpu",
-            learning_rate=3e-4, n_steps=2048, batch_size=512,
+            verbose=0, device="mps",
+            learning_rate=3e-4, n_steps=4096, batch_size=512,
             n_epochs=10, gamma=0.99, gae_lambda=0.95,
             clip_range=0.2, ent_coef=0.005,
-            policy_kwargs=dict(net_arch=[256, 256]),   # smaller net — residuals are simple
+            policy_kwargs=dict(net_arch=[256, 256]),
             tensorboard_log=None,
         )
 
