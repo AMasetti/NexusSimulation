@@ -34,10 +34,10 @@ FREQ        = 0.8       # Hz — step frequency
 #   Knee  (Z axis) → swings foot in Y (forward/back) — primary locomotion joint
 #   Ankle (Z axis) → rotates foot in place
 
-KNEE_AMP    = 0.25      # rad — knee swing (drives forward motion)
-HIP_AMP     = 0.0       # rad — hip lateral: zeroed, causes drift; let RL handle balance
-ANKLE_AMP   = 0.06      # rad — small ankle oscillation for natural gait
-ARM_AMP     = 0.10      # rad — shoulder counter-swing
+KNEE_AMP    = -0.25     # rad — negative = foot forward (+Y). Verified: knee+ → foot-Y
+HIP_AMP     = 0.0       # rad — zeroed, let RL handle lateral balance
+ANKLE_AMP   = 0.06      # rad — small ankle oscillation
+ARM_AMP     = 0.35      # rad — shoulder swing, large enough to be visible (~20°)
 
 # Phase offsets
 KNEE_PHASE  = 0.0
