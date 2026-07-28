@@ -7,7 +7,7 @@
   <default>
     <joint limited="true" damping="0.01" armature="0.01" frictionloss="0.01" />
     <!-- contype=1 conaffinity=0: robot parts respond to ground queries but don't query each other -->
-    <geom condim="4" contype="1" conaffinity="0" friction="0.9 0.2 0.2" solref="0.02 1" solimp="0.9 0.95 0.001" />
+    <geom condim="3" contype="1" conaffinity="0" friction="1.0 0.3 0.1" solref="0.02 1" solimp="0.9 0.95 0.001" />
     <motor ctrllimited="true" />
     <equality solref="0.02 1" solimp="0.9 0.95 0.001" />
     <default class="visualgeom">
@@ -198,7 +198,9 @@
   </worldbody>
 
   <actuator>
-    <!-- MG995 @ 6V: 10 kg·cm = 0.98 N·m | Futaba S3003 @ 4.8V: 3.2 kg·cm = 0.31 N·m -->
+    <!-- MG995 @ 6V: 10 kg·cm = 0.98 N·m each
+         Knee joints have 2 MG995 servos in parallel (Top + Bottom) → 1.96 N·m each
+         Futaba S3003 @ 4.8V: 3.2 kg·cm = 0.31 N·m -->
     <motor name="Servo-Hip-Body-Rotation" joint="Servo-Hip-Body-Rotation" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
     <motor name="Servo-Showlder-L-Front-Back" joint="Servo-Showlder-L-Front-Back" ctrllimited="true" ctrlrange="-0.31 0.31" gear="1" />
     <motor name="Servo-Showlder-L-Inward-Outward" joint="Servo-Showlder-L-Inward-Outward" ctrllimited="true" ctrlrange="-0.31 0.31" gear="1" />
@@ -207,12 +209,12 @@
     <motor name="Servo-Showlder-R-Inward-Outward" joint="Servo-Showlder-R-Inward-Outward" ctrllimited="true" ctrlrange="-0.31 0.31" gear="1" />
     <motor name="Servo-Forearm-R" joint="Servo-Forearm-R" ctrllimited="true" ctrlrange="-0.31 0.31" gear="1" />
     <motor name="Servo-Hip-L" joint="Servo-Hip-L" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
-    <motor name="Servo-Knee-L-Top" joint="Servo-Knee-L-Top" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
-    <motor name="Servo-Knee-L-Bottom" joint="Servo-Knee-L-Bottom" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
+    <motor name="Servo-Knee-L-Top" joint="Servo-Knee-L-Top" ctrllimited="true" ctrlrange="-1.96 1.96" gear="1" />
+    <motor name="Servo-Knee-L-Bottom" joint="Servo-Knee-L-Bottom" ctrllimited="true" ctrlrange="-1.96 1.96" gear="1" />
     <motor name="Servo-Ankle-L" joint="Servo-Ankle-L" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
     <motor name="Servo-Hip-R" joint="Servo-Hip-R" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
-    <motor name="Servo-Knee-R-Top" joint="Servo-Knee-R-Top" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
-    <motor name="Servo-Knee-R-Bottom" joint="Servo-Knee-R-Bottom" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
+    <motor name="Servo-Knee-R-Top" joint="Servo-Knee-R-Top" ctrllimited="true" ctrlrange="-1.96 1.96" gear="1" />
+    <motor name="Servo-Knee-R-Bottom" joint="Servo-Knee-R-Bottom" ctrllimited="true" ctrlrange="-1.96 1.96" gear="1" />
     <motor name="Servo-Ankle-R" joint="Servo-Ankle-R" ctrllimited="true" ctrlrange="-0.98 0.98" gear="1" />
     </actuator>
 
