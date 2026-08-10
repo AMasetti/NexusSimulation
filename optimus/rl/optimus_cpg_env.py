@@ -273,7 +273,8 @@ class OptimusCPGEnv(gym.Env):
         cur_x  = float(self.data.qpos[0])
         root_z = float(self.data.qpos[2])
 
-        fwd_vel    = (cur_y - self._prev_y) / self.ctrl_dt   # m/s forward
+        # Robot faces -Y (base_link quat="0 1 0 0" = 180° around X), so forward = decreasing Y.
+        fwd_vel    = (self._prev_y - cur_y) / self.ctrl_dt   # m/s forward
         self._prev_y = cur_y
 
         # Update episode diagnostics
@@ -286,11 +287,13 @@ class OptimusCPGEnv(gym.Env):
         # Forward velocity reward — penalise standing still (marching in place scores 0, costs -0.3)
         r_forward  = 4.0 * np.clip(fwd_vel, 0.0, 3.0) - 0.3
         r_stable   = -0.05  * float(np.sum(self.data.qvel[3:6] ** 2))
-        r_straight = -2.0   * float(self.data.qvel[0] ** 2)   # penalise X velocity
-        r_yaw      = -1.0   * float(self.data.qvel[5] ** 2)   # penalise Z spin
+        r_straight = -2.0   * float(self.data.qvel[0] ** 2)              # penalise X velocity
+        r_lateral  = -1.0   * float((cur_x - self._start_x) ** 2)       # penalise X drift from start
+        r_yaw      = -1.0   * float(self.data.qvel[5] ** 2)              # penalise Z spin
         r_action   = -0.005 * float(np.sum(action ** 2))
+        r_upright  = -1.5   * float(self._imu_roll ** 2)                 # penalise lateral tilt
 
-        reward = r_height + r_survive + r_forward + r_stable + r_straight + r_yaw + r_action
+        reward = r_height + r_survive + r_forward + r_stable + r_straight + r_lateral + r_yaw + r_action + r_upright
 
         if fallen:
             reward -= 1.0

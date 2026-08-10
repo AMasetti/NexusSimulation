@@ -53,7 +53,7 @@
     <camera name="track" mode="trackcom" pos="0 -3.0 0.8057070389960249" xyaxes="1 0 0 0 0 1" />
     <body name="root" pos="0 0 0.2515" quat="1 0 0 0">
       <freejoint name="root" />
-      <site name="imu" size="0.01" pos="0 0 0" />
+      <site name="imu" size="0.01" pos="-0.024 0.119 0.031" />
       <geom name="Hip-Assembly_collision" type="mesh" mesh="Hip-Assembly" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
       <geom class="visualgeom" type="mesh" rgba="" mesh="Hip-Assembly" />
       <body name="base_link" pos="-0.024 0.11867 0.03098" quat="0 1 0 0">
@@ -86,12 +86,12 @@
           <geom class="visualgeom" type="mesh" rgba="" mesh="Showlder-R" pos="-0.112418 -0.126604 -0.0359537" quat="0.707107 0 -0.707107 0" />
           <body name="Arm-R" pos="0.00420563 -0.025914 0.0375" quat="0.5 0.5 0.5 -0.5">
             <inertial pos="-0.00068707 -0.0391112 -0.0300905" quat="0.706308 0.707563 0.0156208 -0.0154925" mass="0.115734" diaginertia="0.000147122 0.000135476 2.25885e-05" />
-            <joint name="Servo-Showlder-R-Inward-Outward" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+            <joint name="Servo-Showlder-R-Inward-Outward" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
             <geom name="Arm-R_collision" pos="0.158371 -0.118113 0.119532" quat="0 0 -0.707107 0.707107" type="mesh" mesh="Arm-R" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
             <geom class="visualgeom" type="mesh" rgba="" mesh="Arm-R" pos="0.158371 -0.118113 0.119532" quat="0 0 -0.707107 0.707107" />
             <body name="Forearm-R" pos="0 -0.078 0" quat="0 -1 0 0">
               <inertial pos="-0.00767246 0.0604358 0.0258936" quat="0.691973 0.715954 0.0671433 0.0638379" mass="0.153097" diaginertia="0.000134296 9.51857e-05 6.55156e-05" />
-              <joint name="Servo-Forearm-R" pos="0 0 0" axis="0 0 1" range="-1.309 1.309" />
+              <joint name="Servo-Forearm-R" pos="0 0 0" axis="0 0 -1" range="-1.309 1.309" />
               <geom name="Forearm-R_collision" pos="0.121454 0.0386234 -0.10069" quat="0.707107 0.707107 0 0" type="mesh" mesh="Forearm-R" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
               <geom class="visualgeom" type="mesh" rgba="" mesh="Forearm-R" pos="0.121454 0.0386234 -0.10069" quat="0.707107 0.707107 0 0" />
             </body>

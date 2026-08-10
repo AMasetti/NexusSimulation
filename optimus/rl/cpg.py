@@ -48,10 +48,10 @@ ROLL_TARGET_DEFAULT = np.radians(4.0)
 # IMU stabiliser gains
 PITCH_GAIN    = 0.4
 ANKLE_GAIN    = 0.6    # roll → ankle tilt (foot roll joint, axis Y)
-HIP_GAIN      = 0.8    # roll → hip lateral shift (active with ground contact)
+HIP_GAIN      = 0.4    # roll → hip lateral shift — reduced to avoid noise-driven bias
 YAW_RATE_GAIN = 0.5
-PITCH_THRESH  = np.radians(0.6)
-ROLL_THRESH   = np.radians(0.6)
+PITCH_THRESH  = np.radians(2.0)
+ROLL_THRESH   = np.radians(2.0)
 
 # Joint limits from config.h
 LIM_HIP_PITCH  = np.radians(45.0)
@@ -115,24 +115,13 @@ class CPG:
                       "Servo-Knee-R-Top", "Servo-Knee-R-Bottom"):
                 targets[k] = float(np.clip(targets[k] + p, -LIM_KNEE, LIM_KNEE))
 
-        # Roll → ankle tilt (restores foot contact on leaning side)
-        # Roll → hip lateral push (shifts CoM toward stance leg, requires ground contact)
-        # Both always written so they return to 0 below threshold.
-        if abs(roll) > ROLL_THRESH:
-            ankle = float(np.clip(-ANKLE_GAIN * roll, -np.radians(30), np.radians(30)))
-            # Hip correction: positive roll (lean right) → push both hips right to recover.
-            # Same sign both hips = feet move together in -X → CoM shifts +X.
-            hip_corr = float(np.clip(HIP_GAIN * roll, -np.radians(20), np.radians(20)))
-        else:
-            ankle    = 0.0
-            hip_corr = 0.0
+        # Ankle tilt only — hip lateral correction removed, IMU bias causes persistent tilt.
+        # RL residual handles hip lateral balance without accumulated drift.
+        ankle = float(np.clip(-ANKLE_GAIN * roll, -np.radians(30), np.radians(30))) \
+                if abs(roll) > ROLL_THRESH else 0.0
 
         targets["Servo-Ankle-L"] = ankle
         targets["Servo-Ankle-R"] = ankle
-        targets["Servo-Hip-L"]   = float(np.clip(targets.get("Servo-Hip-L", 0.0) + hip_corr,
-                                                  -LIM_HIP_ROLL, LIM_HIP_ROLL))
-        targets["Servo-Hip-R"]   = float(np.clip(targets.get("Servo-Hip-R", 0.0) + hip_corr,
-                                                  -LIM_HIP_ROLL, LIM_HIP_ROLL))
 
         # Yaw rate → hip body rotation damping
         targets["Servo-Hip-Body-Rotation"] = float(
@@ -185,11 +174,14 @@ class CPG:
         knee_R_bot = float(np.clip(+KNEE_AMP * swing_frac_R - stance_ext_R * stance_frac_R,
                                    -LIM_KNEE_FLEX, LIM_KNEE_EXT))
 
-        # Arms counter-swing opposite leg — symmetric ±ARM_AMP
-        arm_L  = float(np.clip( ARM_AMP * (swing_frac_R - swing_frac_L), -LIM_SHOULDER, LIM_SHOULDER))
-        arm_R  = float(np.clip( ARM_AMP * (swing_frac_L - swing_frac_R), -LIM_SHOULDER, LIM_SHOULDER))
-        fore_L = float(np.clip(0.4 * ARM_AMP * np.sin(wt + np.pi), -LIM_FOREARM, LIM_FOREARM))
-        fore_R = float(np.clip(0.4 * ARM_AMP * np.sin(wt),          -LIM_FOREARM, LIM_FOREARM))
+        # Arms counter-swing opposite leg.
+        # Inward/Outward-R and Forearm-R have axis="0 0 -1" in XML so same signal = symmetric motion.
+        # Abduction: small lateral raise in phase with opposite swing leg (natural gait coupling).
+        arm_L   = float(np.clip( ARM_AMP * (swing_frac_R - swing_frac_L), -LIM_SHOULDER, LIM_SHOULDER))
+        arm_R   = float(np.clip( ARM_AMP * (swing_frac_L - swing_frac_R), -LIM_SHOULDER, LIM_SHOULDER))
+        abduct  = float(np.clip(0.15 * ARM_AMP * np.abs(np.sin(wt)), 0.0, LIM_SHOULDER))
+        fore_L  = float(np.clip(0.4 * ARM_AMP * np.sin(wt + np.pi), -LIM_FOREARM, LIM_FOREARM))
+        fore_R  = float(np.clip(0.4 * ARM_AMP * np.sin(wt + np.pi), -LIM_FOREARM, LIM_FOREARM))
 
         # Hips: base=0, driven entirely by stabilise() IMU roll correction.
         return {
@@ -204,8 +196,8 @@ class CPG:
             "Servo-Hip-Body-Rotation":         0.0,
             "Servo-Showlder-L-Front-Back":     arm_L,
             "Servo-Showlder-R-Front-Back":     arm_R,
-            "Servo-Showlder-L-Inward-Outward": 0.0,
-            "Servo-Showlder-R-Inward-Outward": 0.0,
+            "Servo-Showlder-L-Inward-Outward": abduct,
+            "Servo-Showlder-R-Inward-Outward": abduct,
             "Servo-Forearm-L":                 fore_L,
             "Servo-Forearm-R":                 fore_R,
         }
