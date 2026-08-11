@@ -91,7 +91,7 @@ class OptimusCPGEnv(gym.Env):
             if name:
                 self._amap[name] = i
 
-        self._root_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "root")
+        self._root_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "base_link")
 
         self.action_space      = spaces.Box(-1.0, 1.0, shape=(self.model.nu,), dtype=np.float32)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(OBS_DIM,), dtype=np.float32)
@@ -145,9 +145,9 @@ class OptimusCPGEnv(gym.Env):
             self.data.qvel[:]  = 0.0
             # Collect roll samples for calibration (last 500 steps = settled motion)
             if _ >= 500:
-                q = self.data.qpos[3:7]
-                roll_accel = float(np.arctan2(2*(q[0]*q[3] + q[1]*q[2]),
-                                              1 - 2*(q[2]**2 + q[3]**2)))
+                mat = self.data.xmat[self._root_id].reshape(3, 3)
+                gvec_z = -mat[2, 2]
+                roll_accel = float(np.arctan2(-mat[0, 2], gvec_z))
                 roll_samples.append(roll_accel)
 
         self._cpg.calibrate(roll_samples)
@@ -157,24 +157,29 @@ class OptimusCPGEnv(gym.Env):
     def _update_imu(self):
         """
         Complementary filter matching firmware MPU6050::update().
-        Uses MuJoCo root body quaternion and angular velocity as ground truth.
-        """
-        q = self.data.qpos[3:7]   # w, x, y, z
-        # Pitch: rotation around X (forward lean)
-        pitch_accel = float(np.arctan2(2*(q[0]*q[1] + q[2]*q[3]),
-                                       1 - 2*(q[1]**2 + q[2]**2)))
-        # Roll: rotation around Z (lateral lean)  — firmware uses atan2(ax, ay)
-        roll_accel  = float(np.arctan2(2*(q[0]*q[3] + q[1]*q[2]),
-                                       1 - 2*(q[2]**2 + q[3]**2)))
 
-        gx = float(self.data.qvel[3])   # angular velocity around X
-        gz = float(self.data.qvel[5])   # angular velocity around Z
-        gy = float(self.data.qvel[4])   # yaw rate around Y
+        Robot's xmat upright = [[1,0,0],[0,-1,0],[0,0,-1]].
+        Gravity in body frame = -xmat[:,2] (third column negated).
+        roll  = arctan2(gvec_x, gvec_z): lateral tilt, +right
+        pitch = arctan2(gvec_y, gvec_z): forward tilt, +forward
+        Verified: 10° world-Y tilt → roll=+10°, 10° world-X tilt → pitch=-10°.
+        """
+        mat = self.data.xmat[self._root_id].reshape(3, 3)
+        # Gravity vector in body frame = -mat[:,2] (third column negated).
+        # Verified: 10° lateral → roll=+10°, 10° forward → pitch=-10°.
+        gvec_x = -float(mat[0, 2])
+        gvec_y = -float(mat[1, 2])
+        gvec_z = -float(mat[2, 2])
+        roll_accel  = float(np.arctan2(gvec_x, gvec_z))   # lateral tilt
+        pitch_accel = float(np.arctan2(gvec_y, gvec_z))   # forward tilt
+
+        gx = float(self.data.qvel[3])   # angular velocity around X (lateral roll)
+        gy = float(self.data.qvel[4])   # angular velocity around Y (forward pitch)
 
         dt = self.ctrl_dt
-        self._imu_pitch    = self._imu_alpha * (self._imu_pitch + gx * dt) + (1 - self._imu_alpha) * pitch_accel
-        self._imu_roll     = self._imu_alpha * (self._imu_roll  + gz * dt) + (1 - self._imu_alpha) * roll_accel
-        self._imu_yaw_rate = gy
+        self._imu_roll     = self._imu_alpha * (self._imu_roll  + gx * dt) + (1 - self._imu_alpha) * roll_accel
+        self._imu_pitch    = self._imu_alpha * (self._imu_pitch + gy * dt) + (1 - self._imu_alpha) * pitch_accel
+        self._imu_yaw_rate = float(self.data.qvel[5])
 
     def _set_ctrl(self, cpg_targets: dict, residual: np.ndarray):
         for i, name in enumerate(ACTUATOR_NAMES):
@@ -201,8 +206,10 @@ class OptimusCPGEnv(gym.Env):
     def _is_fallen(self) -> bool:
         if self.data.qpos[2] < 0.10:
             return True
+        # Gravity in body frame: gvec_z = -xmat[2,2]. Upright = +1.0, fallen on side = 0.
+        # gvec_z < 0.5 means tilt > ~60° from upright.
         mat = self.data.xmat[self._root_id].reshape(3, 3)
-        return mat[2, 2] < 0.5   # torso tilt > ~60°
+        return -mat[2, 2] < 0.5
 
     def diagnostics(self) -> dict:
         """Return current episode diagnostics for live logging."""
@@ -291,7 +298,10 @@ class OptimusCPGEnv(gym.Env):
         r_lateral  = -1.0   * float((cur_x - self._start_x) ** 2)       # penalise X drift from start
         r_yaw      = -1.0   * float(self.data.qvel[5] ** 2)              # penalise Z spin
         r_action   = -0.005 * float(np.sum(action ** 2))
-        r_upright  = -1.5   * float(self._imu_roll ** 2)                 # penalise lateral tilt
+        # Upright penalty — use real rotation matrix, not IMU (IMU was blind to lateral tilt).
+        # Penalise both lateral (roll=Y) and forward (pitch=X) tilt.
+        r_upright  = -2.0   * float(self._imu_roll ** 2) \
+                   - 0.5    * float(self._imu_pitch ** 2)
 
         reward = r_height + r_survive + r_forward + r_stable + r_straight + r_lateral + r_yaw + r_action + r_upright
 

@@ -204,6 +204,7 @@ def cpg_only():
     m = mujoco.MjModel.from_xml_path(URDF)
     d = mujoco.MjData(m)
 
+    root_id = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "base_link")
     jpos, jdof, amap = {}, {}, {}
     for i in range(m.njnt):
         name = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_JOINT, i)
@@ -250,11 +251,12 @@ def cpg_only():
 
             targets = cpg.step(CTRL_DT)
 
-            # Simple IMU from quaternion
-            q = d.qpos[3:7]
-            pitch = float(np.arctan2(2*(q[0]*q[1]+q[2]*q[3]), 1-2*(q[1]**2+q[2]**2)))
-            roll  = float(np.arctan2(2*(q[0]*q[3]+q[1]*q[2]), 1-2*(q[2]**2+q[3]**2)))
-            yaw_r = float(d.qvel[4])
+            # IMU from gravity vector in body frame (matches optimus_cpg_env._update_imu).
+            mat   = d.xmat[root_id].reshape(3, 3)
+            gz    = [-mat[0,2], -mat[1,2], -mat[2,2]]
+            roll  = float(np.arctan2(gz[0], gz[2]))
+            pitch = float(np.arctan2(gz[1], gz[2]))
+            yaw_r = float(d.qvel[5])
             targets = cpg.stabilise(targets, pitch, roll, yaw_r)
 
             for name, target in targets.items():
