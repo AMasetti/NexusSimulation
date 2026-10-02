@@ -1,0 +1,21 @@
+#!/bin/sh
+# Reject commits carrying AI-agent attribution (Claude, Copilot, Cursor, Codex, Aider, etc.)
+agents='claude|anthropic|copilot|cursor|codex|openai|chatgpt|gemini|aider|devin|codeium|windsurf|\[bot\]'
+pattern="co-authored-by:.*($agents|gpt-)|generated (with|by) .*($agents|ai)|claude\.(ai|com)/code|🤖"
+
+if grep -v '^#' "$1" | grep -qiE "$pattern"; then
+  echo "✖ commit rejected: AI agent attribution found in commit message:" >&2
+  grep -v '^#' "$1" | grep -iE "$pattern" | while IFS= read -r l; do echo "    $l" >&2; done
+  echo "  Remove those lines and commit again." >&2
+  exit 1
+fi
+
+# Reject commits whose author or committer is an AI agent
+for role in AUTHOR COMMITTER; do
+  ident=$(git var "GIT_${role}_IDENT" | sed 's/ [0-9]* [-+][0-9]*$//')
+  if echo "$ident" | grep -qiE "$agents"; then
+    echo "✖ commit rejected: $role is an AI agent: $ident" >&2
+    echo "  Commit as yourself (git config user.name / user.email, or --author)." >&2
+    exit 1
+  fi
+done

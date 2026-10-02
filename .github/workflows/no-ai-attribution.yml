@@ -1,0 +1,50 @@
+name: No AI attribution
+
+# Server-side twin of the local commit-msg hook: catches commits that skipped it
+# (--no-verify, web edits, merges from other branches).
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit authors and messages
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$PR_BASE..$PR_HEAD"
+          elif [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            range="$AFTER --max-count=50"
+          else
+            range="$BEFORE..$AFTER"
+          fi
+
+          agents='claude|anthropic|copilot|cursor|codex|openai|chatgpt|gemini|aider|devin|codeium|windsurf|\[bot\]'
+          pattern="co-authored-by:.*($agents|gpt-)|generated (with|by) .*($agents|ai)|claude\.(ai|com)/code|🤖"
+
+          fail=0
+          for c in $(git rev-list $range); do
+            who=$(git log -1 --format='%an <%ae> / %cn <%ce>' "$c")
+            if echo "$who" | grep -qiE "$agents"; then
+              echo "::error::$(git log -1 --format='%h %s' "$c") — author/committer is an AI agent: $who"
+              fail=1
+            fi
+            hits=$(git log -1 --format=%B "$c" | grep -iE "$pattern" || true)
+            if [ -n "$hits" ]; then
+              echo "::error::$(git log -1 --format='%h %s' "$c") — AI attribution in message: $hits"
+              fail=1
+            fi
+          done
+          [ "$fail" = 0 ] && echo "No AI attribution found in $(git rev-list --count $range) commit(s)."
+          exit $fail
