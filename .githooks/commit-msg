@@ -19,3 +19,18 @@ for role in AUTHOR COMMITTER; do
     exit 1
   fi
 done
+
+# Require Conventional Commits — the release workflow derives the semver bump from them
+types='feat|fix|perf|refactor|chore|ci|docs|style|test|build|revert'
+subject=$(grep -v '^#' "$1" | grep -m1 -v '^[[:space:]]*$')
+case "$subject" in
+  "Merge "*|"Revert \""*|"fixup! "*|"squash! "*|"amend! "*) exit 0 ;;
+esac
+if ! echo "$subject" | grep -qE "^($types)(\([a-z0-9._/-]+\))?!?: [^ ].*"; then
+  echo "✖ commit rejected: subject is not a Conventional Commit:" >&2
+  echo "    $subject" >&2
+  echo "  Use  <type>[(scope)][!]: <description>   e.g.  feat(sliders): add step buttons" >&2
+  echo "  Types: $(echo "$types" | tr '|' ' ')" >&2
+  echo "  feat → minor release · fix/perf/refactor → patch · '!' or BREAKING CHANGE: → major" >&2
+  exit 1
+fi
