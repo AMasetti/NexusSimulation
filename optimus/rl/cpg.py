@@ -36,6 +36,11 @@ KNEE_AMP      = np.radians(40.0)   # swing amplitude — ~75mm foot clearance
 STANCE_ANGLE  = np.radians(15.0)   # stance crouch → extension generates push-off
 ARM_AMP       = np.radians(25.0)   # shoulder counter-swing ±25°
 
+# Swing-foot toe lift: the swing leg's ankle rotates by this much (scaled by
+# swing_frac) to keep the toe off the ground and avoid scuffing. Applied in
+# stabilise() on top of the IMU ankle tilt.
+SWING_ANKLE_LIFT = np.radians(18.0)
+
 # Phase reset: how strongly IMU roll modulates oscillator speed.
 # Small value → robust to noise; large → fast adaptation.
 # ponytail: tune K_RESET on hardware if gait drifts phase
@@ -120,8 +125,22 @@ class CPG:
         ankle = float(np.clip(-ANKLE_GAIN * roll, -np.radians(30), np.radians(30))) \
                 if abs(roll) > ROLL_THRESH else 0.0
 
-        targets["Servo-Ankle-L"] = ankle
-        targets["Servo-Ankle-R"] = ankle
+        # Swing-foot lift: rotate the swing leg's ankle to clear the toe off the
+        # ground so it does not scuff during swing. Scaled by swing_frac so the
+        # lift eases in and out with the gait phase instead of stepping abruptly.
+        #
+        # Only the LIFT is gated by swing_frac — the stance foot gets no lift.
+        # The IMU tilt stays on both ankles: gating it too (so the stance ankle
+        # sat at exactly 0) removed the balance correction from the foot carrying
+        # the weight, and the robot fell at step 93 instead of walking 500.
+        s = float(np.sin(self._omega * self._t))
+        swing_frac_L = max(0.0, -s)
+        swing_frac_R = max(0.0,  s)
+
+        targets["Servo-Ankle-L"] = float(np.clip(
+            ankle + SWING_ANKLE_LIFT * swing_frac_L, -LIM_ANKLE, LIM_ANKLE))
+        targets["Servo-Ankle-R"] = float(np.clip(
+            ankle + SWING_ANKLE_LIFT * swing_frac_R, -LIM_ANKLE, LIM_ANKLE))
 
         # Yaw rate → hip body rotation damping
         targets["Servo-Hip-Body-Rotation"] = float(
