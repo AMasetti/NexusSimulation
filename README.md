@@ -5,7 +5,7 @@ MuJoCo simulation environment for the Nexus Robotics project. Covers two robots:
 - **Optimus** — 8-DOF biped (primary development target)
 - **SpotMicro** — quadruped (RL locomotion experiments)
 
-Part of the [NexusRobotics](https://github.com/AMasetti/NexusRobotics) monorepo.
+Related repos: [NexusFirmware](https://github.com/AMasetti/NexusFirmware) · [NexusHardware](https://github.com/AMasetti/NexusHardware) · [NexusFuturespace](https://github.com/AMasetti/NexusFuturespace)
 
 ---
 
@@ -28,7 +28,7 @@ mjpython optimus/run_sim.py          # macOS
 python   optimus/run_sim.py          # Linux
 ```
 
-Loads `optimus/mjcf/optimus.mujoco.xml` and opens the MuJoCo interactive viewer.
+Loads `optimus/urdf/full/optimus_mujoco_fixed.xml` and opens the MuJoCo interactive viewer.
 
 ### Optimus — half-leg prototype
 
@@ -72,14 +72,18 @@ A notebook that trains and then runs the policy in the viewer is available at `s
 NexusSimulation/
 ├── optimus/
 │   ├── mjcf/
-│   │   ├── optimus.mujoco.xml        # MJCF model — main Optimus sim
-│   │   ├── optimus_mujoco_fixed.xml  # Fixed-base variant
 │   │   └── half-leg/
 │   │       └── robot.mujoco.xml      # Half-leg prototype MJCF
-│   ├── meshes/                       # STL meshes for Optimus body parts
 │   ├── urdf/
-│   │   ├── full/                     # URDF + meshes for full Optimus model
+│   │   ├── full/
+│   │   │   ├── Assembly.urdf             # URDF exported from CAD
+│   │   │   ├── optimus_mujoco_fixed.xml  # MJCF used by the viewer and RL envs
+│   │   │   └── meshes/                   # STL meshes for every body part
 │   │   └── half-leg/                 # URDF + STEP meshes for half-leg prototype
+│   ├── rl/
+│   │   ├── optimus_env.py / optimus_cpg_env.py  # Gymnasium environments
+│   │   ├── train.py / train_cpg.py   # PPO and CPG+PPO training
+│   │   └── checkpoints/best/         # promoted best policy (other runs stay local)
 │   ├── run_sim.py                    # Optimus full-body viewer
 │   ├── run_sim_half_leg.py           # Optimus half-leg viewer
 │   ├── step_to_stl.py                # STEP → STL converter (half-leg meshes)

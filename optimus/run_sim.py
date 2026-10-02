@@ -20,7 +20,7 @@ from mujoco import viewer
 
 OPTIMUS_DIR = os.path.dirname(os.path.abspath(__file__))
 MUJUCO_DIR = os.path.dirname(OPTIMUS_DIR)
-MJCF_PATH = os.path.join(OPTIMUS_DIR, "mjcf", "optimus.mujoco.xml")
+MJCF_PATH = os.path.join(OPTIMUS_DIR, "urdf", "full", "optimus_mujoco_fixed.xml")
 MODEL_DIR = os.path.join(OPTIMUS_DIR, "urdf", "full")
 MODEL_PATH = os.path.join(MODEL_DIR, "Assembly.urdf")
 CONSTRAINTS_PATH = None
