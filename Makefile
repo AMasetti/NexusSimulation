@@ -4,11 +4,12 @@
 #   make run             full-body Optimus sim in the MuJoCo viewer
 #   make cpg-train       train CPG+PPO residual policy (headless)
 #   make cpg-eval        run the newest CPG+PPO checkpoint in the viewer
+#   make record          record walking episodes as MCAP for nexus-data (headless)
 #
 # The viewer needs mjpython on macOS; training is headless and uses plain python.
 # Override either:  make run MJPYTHON=mjpython   make cpg-train PYTHON=python
 
-.PHONY: help install hooks run rl-eval cpg cpg-train cpg-eval monitor
+.PHONY: help install hooks run rl-eval cpg cpg-train cpg-eval monitor record
 
 ROOT     := $(shell pwd)
 RL_DIR   := $(ROOT)/optimus/rl
@@ -32,6 +33,7 @@ help:
 	@echo "    make cpg-train   train CPG+PPO (headless)"
 	@echo "    make cpg-eval    newest CPG+PPO checkpoint in the viewer  [MODEL=...]"
 	@echo "    make monitor     poll the latest training run, notify via Telegram"
+	@echo "    make record      record episodes as MCAP for nexus-data  [EPISODES=3 SECONDS=10]"
 	@echo ""
 
 install: hooks
@@ -59,3 +61,10 @@ cpg-eval:
 
 monitor:
 	cd $(RL_DIR) && $(PYTHON) monitor.py
+
+# Simulated episodes in the nexus-data landing folder ($NEXUS_DATA_ROOT/landing),
+# shaped like the robot's: then `make data-ingest` from the workspace root.
+EPISODES ?= 3
+SECONDS  ?= 10
+record:
+	$(PYTHON) optimus/record_mcap.py --episodes $(EPISODES) --seconds $(SECONDS) $(if $(MODEL),--model $(MODEL))

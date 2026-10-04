@@ -30,6 +30,15 @@ python   optimus/run_sim.py          # Linux
 
 Loads `optimus/urdf/full/optimus_mujoco_fixed.xml` and opens the MuJoCo interactive viewer.
 
+### Optimus — recording episodes for nexus-data
+
+```bash
+make record                          # 3 × 10 s walking episodes, newest CPG+PPO policy
+make record EPISODES=10 MODEL=none   # bare CPG gait, no RL residual
+```
+
+`optimus/record_mcap.py` runs the policy headless and writes rosbag2-style MCAP episodes — `/optimus/joint_states` (servo angles, named like the robot) and `/optimus/imu/raw` (gyro and specific force at the IMU site), at 50 Hz, stamped with simulation time. URDF joint angles become servo angles through futurespace's `robot.json`, so simulated and real episodes share one shape. Episodes land in `$NEXUS_DATA_ROOT/landing` with a `nexus.json` (`source: sim`), where `make data-ingest` in the NexusRobotics workspace checks them into the [nexus-data](https://github.com/AMasetti/Nexus-Data) lake.
+
 ### Optimus — half-leg prototype
 
 The half-leg model uses STEP meshes that must be converted to STL before first run:
